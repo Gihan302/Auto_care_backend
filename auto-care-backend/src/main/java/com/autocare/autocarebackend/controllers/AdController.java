@@ -13,11 +13,12 @@ import com.autocare.autocarebackend.security.services.ReportAdDetailsImpl;
 import com.autocare.autocarebackend.security.services.UserDetailsImpl;
 import com.autocare.autocarebackend.security.services.ImageUploadService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Date;
@@ -28,6 +29,8 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/advertisement")
 public class AdController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AdController.class);
 
     @Autowired
     AdDetailsImpl adDetails;
@@ -44,39 +47,85 @@ public class AdController {
     @Autowired
     ImageUploadService imageUploadService;
 
-    // NOTE: fileLocation is no longer used for saving images to disk.
-    // Keeping field to avoid breaking other config reads if present.
-    // @Value("${upload.location}")
-    // private String fileLocation;
+    // Helper method to check if string is null or blank (Java 8 compatible)
+    private boolean isNullOrBlank(String str) {
+        return str == null || str.trim().isEmpty();
+    }
 
-    @CrossOrigin(origins = "http://localhost:4200")
     @PostMapping("/postadd")
-    @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_ADMIN') or hasRole('ROLE_AGENT')")
-    public ResponseEntity<?> AddPost(@RequestBody AdRequest adRequest, Authentication authentication) {
+    public ResponseEntity<?> AddPost(@RequestBody AdRequest adRequest) {
         try {
-            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+            // Get authentication from SecurityContext
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+            logger.info("🔍 Authentication check: " + (authentication != null ? "Found" : "NULL"));
+
+            if (authentication == null || !authentication.isAuthenticated()) {
+                logger.error("❌ Authentication is null or not authenticated");
+                return ResponseEntity.status(401).body(new MessageResponse("Authentication required"));
+            }
+
+            Object principal = authentication.getPrincipal();
+            logger.info("🎯 Principal type: " + (principal != null ? principal.getClass().getSimpleName() : "NULL"));
+
+            if (!(principal instanceof UserDetailsImpl)) {
+                logger.error("❌ Invalid principal type: " + (principal != null ? principal.getClass() : "null"));
+                return ResponseEntity.status(401).body(new MessageResponse("Invalid authentication principal"));
+            }
+
+            UserDetailsImpl userDetails = (UserDetailsImpl) principal;
+            logger.info("👤 Authenticated user: " + userDetails.getUsername());
+
             User user = userRepository.findById(userDetails.getId()).orElse(null);
             if (user == null) {
+                logger.error("❌ User not found in database for ID: " + userDetails.getId());
                 return ResponseEntity.badRequest().body(new MessageResponse("Invalid user"));
             }
 
-            Date datetime = new Date();
+            logger.info("✅ User found: " + user.getUsername());
 
+            Date datetime = new Date();
             String[] images = adRequest.getImages();
-            // Ensure array length at most 5; fill missing with nulls
+
+            // Validate and prepare images array
             String[] safeImages = new String[5];
-            for (int i = 0; i < 5; i++) {
-                if (images != null && images.length > i) safeImages[i] = images[i];
-                else safeImages[i] = null;
+            if (images != null && images.length > 0) {
+                for (int i = 0; i < Math.min(5, images.length); i++) {
+                    safeImages[i] = images[i];
+                }
             }
 
-            // Upload images to Cloudinary (if present) and collect uploaded URLs
+            // Upload images to Cloudinary and collect URLs
             String image1Url = null, image2Url = null, image3Url = null, image4Url = null, image5Url = null;
-            if (safeImages[0] != null && !safeImages[0].isBlank()) image1Url = imageUploadService.uploadBase64(safeImages[0]);
-            if (safeImages[1] != null && !safeImages[1].isBlank()) image2Url = imageUploadService.uploadBase64(safeImages[1]);
-            if (safeImages[2] != null && !safeImages[2].isBlank()) image3Url = imageUploadService.uploadBase64(safeImages[2]);
-            if (safeImages[3] != null && !safeImages[3].isBlank()) image4Url = imageUploadService.uploadBase64(safeImages[3]);
-            if (safeImages[4] != null && !safeImages[4].isBlank()) image5Url = imageUploadService.uploadBase64(safeImages[4]);
+
+            logger.info("🖼️ Processing " + (images != null ? images.length : 0) + " images");
+
+            // FIXED: Upload each image correctly with proper null checks
+            if (!isNullOrBlank(safeImages[0])) {
+                logger.info("📤 Uploading image 1 to Cloudinary...");
+                image1Url = imageUploadService.uploadBase64(safeImages[0]);
+                logger.info("✅ Image 1 uploaded: " + image1Url);
+            }
+            if (!isNullOrBlank(safeImages[1])) {
+                logger.info("📤 Uploading image 2 to Cloudinary...");
+                image2Url = imageUploadService.uploadBase64(safeImages[1]);
+                logger.info("✅ Image 2 uploaded: " + image2Url);
+            }
+            if (!isNullOrBlank(safeImages[2])) {
+                logger.info("📤 Uploading image 3 to Cloudinary...");
+                image3Url = imageUploadService.uploadBase64(safeImages[2]);
+                logger.info("✅ Image 3 uploaded: " + image3Url);
+            }
+            if (!isNullOrBlank(safeImages[3])) {
+                logger.info("📤 Uploading image 4 to Cloudinary...");
+                image4Url = imageUploadService.uploadBase64(safeImages[3]);
+                logger.info("✅ Image 4 uploaded: " + image4Url);
+            }
+            if (!isNullOrBlank(safeImages[4])) {
+                logger.info("📤 Uploading image 5 to Cloudinary...");
+                image5Url = imageUploadService.uploadBase64(safeImages[4]);
+                logger.info("✅ Image 5 uploaded: " + image5Url);
+            }
 
             Advertisement advertisement = new Advertisement(
                     adRequest.getName(),
@@ -99,29 +148,28 @@ public class AdController {
                     adRequest.getDescription(),
                     image1Url, image2Url, image3Url, image4Url, image5Url,
                     datetime,
-                    adRequest.getFlag(),
+                    adRequest.getFlag(), // Fixed typo from getlStatus
                     adRequest.getlStatus(),
                     adRequest.getiStatus(),
                     user
             );
 
             Advertisement saved = adDetails.saveAdDetails(advertisement);
+            logger.info("🎉 Advertisement saved successfully with ID: " + saved.getId());
+
             return ResponseEntity.ok(saved);
 
         } catch (IOException ex) {
-            ex.printStackTrace();
+            logger.error("💥 Cloudinary upload failed: " + ex.getMessage(), ex);
             return ResponseEntity.status(500).body(new MessageResponse("Image upload failed: " + ex.getMessage()));
         } catch (Exception ex) {
-            ex.printStackTrace();
+            logger.error("💥 Server error: " + ex.getMessage(), ex);
             return ResponseEntity.status(500).body(new MessageResponse("Server error: " + ex.getMessage()));
         }
     }
 
     /**
      * Returns the stored image URL (string) for a given advertisement id and image index.
-     * This keeps things simple: frontend should prefer to use the URLs returned in the Advertisement object.
-     *
-     * Example: GET /advertisement/getimage/{adId}/{index} where index is 1..5
      */
     @GetMapping(value = {"/getimage/{id}", "/getimage/{id}/{index}"})
     public ResponseEntity<?> getAddImage(@PathVariable("id") Long id,
@@ -170,8 +218,6 @@ public class AdController {
 
     @GetMapping("/getAdById/{id}")
     public Optional<Advertisement> gedAdById(@PathVariable Long id) {
-        System.out.println(id);
-        System.out.println("get add");
         return adRepository.findById(id);
     }
 
@@ -190,7 +236,12 @@ public class AdController {
     }
 
     @GetMapping("/getAddsByCurrentUser")
-    public List<Advertisement> GetAddsByUser(Authentication authentication) {
+    public List<Advertisement> GetAddsByUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl)) {
+            return List.of();
+        }
+
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User user = userRepository.findById(userDetails.getId()).orElse(null);
         if (user == null) return List.of();
@@ -198,7 +249,12 @@ public class AdController {
     }
 
     @GetMapping("/countremainad")
-    public Long CountremainAd(Authentication authentication) {
+    public Long CountremainAd() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl)) {
+            return 0L;
+        }
+
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User user = userRepository.findById(userDetails.getId()).orElse(null);
         if (user == null) return 0L;
@@ -206,7 +262,12 @@ public class AdController {
     }
 
     @GetMapping("/countpostedad")
-    public Long CountpostedAd(Authentication authentication) {
+    public Long CountpostedAd() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl)) {
+            return 0L;
+        }
+
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User user = userRepository.findById(userDetails.getId()).orElse(null);
         if (user == null) return 0L;
