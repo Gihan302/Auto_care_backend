@@ -100,7 +100,7 @@ public class AdController {
 
             logger.info("🖼️ Processing " + (images != null ? images.length : 0) + " images");
 
-            // FIXED: Upload each image correctly with proper null checks
+            // Upload each image correctly with proper null checks
             if (!isNullOrBlank(safeImages[0])) {
                 logger.info("📤 Uploading image 1 to Cloudinary...");
                 image1Url = imageUploadService.uploadBase64(safeImages[0]);
@@ -127,6 +127,7 @@ public class AdController {
                 logger.info("✅ Image 5 uploaded: " + image5Url);
             }
 
+            // Create advertisement with flag = 0 (pending approval)
             Advertisement advertisement = new Advertisement(
                     adRequest.getName(),
                     adRequest.getT_number(),
@@ -148,16 +149,17 @@ public class AdController {
                     adRequest.getDescription(),
                     image1Url, image2Url, image3Url, image4Url, image5Url,
                     datetime,
-                    adRequest.getFlag(), // Fixed typo from getlStatus
+                    0, // Always set to 0 for pending approval
                     adRequest.getlStatus(),
                     adRequest.getiStatus(),
                     user
             );
 
             Advertisement saved = adDetails.saveAdDetails(advertisement);
-            logger.info("🎉 Advertisement saved successfully with ID: " + saved.getId());
+            logger.info("🎉 Advertisement saved successfully with ID: {} (Pending admin approval)", saved.getId());
 
-            return ResponseEntity.ok(saved);
+            return ResponseEntity.ok()
+                    .body(new MessageResponse("Advertisement submitted successfully! It will be visible after admin approval."));
 
         } catch (IOException ex) {
             logger.error("💥 Cloudinary upload failed: " + ex.getMessage(), ex);
@@ -167,7 +169,6 @@ public class AdController {
             return ResponseEntity.status(500).body(new MessageResponse("Server error: " + ex.getMessage()));
         }
     }
-
     /**
      * Returns the stored image URL (string) for a given advertisement id and image index.
      */

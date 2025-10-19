@@ -85,7 +85,7 @@ public class Advertisement {
     private Date datetime;
 
     @NotNull
-    private Integer falg;
+    private Integer flag;
 
     @NotNull
     private Integer lStatus;
@@ -115,7 +115,7 @@ public class Advertisement {
                          String v_type, String manufacturer, String model, String v_condition, String m_year,
                          String r_year, String mileage, String e_capacity, String transmission, String fuel_type,
                          String colour, String description, String image1, String image2, String image3, String image4,
-                         String image5, Date datetime, Integer falg, Integer lStatus, Integer iStatus, User user) {
+                         String image5, Date datetime, Integer flag, Integer lStatus, Integer iStatus, User user) {
         this.name = name;
         this.t_number = t_number;
         this.email = email;
@@ -140,7 +140,7 @@ public class Advertisement {
         this.image4 = image4;
         this.image5 = image5;
         this.datetime = datetime;
-        this.falg = falg;
+        this.flag = flag;
         this.lStatus = lStatus;
         this.iStatus = iStatus;
         this.user = user;
@@ -294,12 +294,12 @@ public class Advertisement {
         this.m_year = m_year;
     }
 
-    public Integer getFalg() {
-        return falg;
+    public Integer getFlag() {
+        return flag;
     }
 
-    public void setFalg(Integer falg) {
-        this.falg = falg;
+    public void setFlag(Integer flag) {
+        this.flag = flag;
     }
 
     public String getR_year() {
