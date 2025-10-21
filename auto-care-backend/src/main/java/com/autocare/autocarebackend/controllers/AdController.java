@@ -24,6 +24,10 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -273,5 +277,127 @@ public class AdController {
         User user = userRepository.findById(userDetails.getId()).orElse(null);
         if (user == null) return 0L;
         return adRepository.pcount(user);
+    }
+    // Add these methods to your AdController.java
+
+    /**
+     * Get all approved advertisements for comparison selection
+     */
+    @GetMapping("/compare/available")
+    public ResponseEntity<?> getAvailableForComparison() {
+        try {
+            // Get only approved ads (flag = 1)
+            List<Advertisement> approvedAds = adRepository.getConfirmAd();
+
+            // Return simplified data for selection dropdown
+            List<Map<String, Object>> simplifiedAds = approvedAds.stream()
+                    .map(ad -> {
+                        Map<String, Object> map = new HashMap<>();
+                        map.put("id", ad.getId());
+                        map.put("title", ad.getTitle());
+                        map.put("manufacturer", ad.getManufacturer());
+                        map.put("model", ad.getModel());
+                        map.put("year", ad.getM_year());
+                        map.put("v_type", ad.getV_type());
+                        return map;
+                    })
+                    .collect(Collectors.toList());
+
+            logger.info("✅ Retrieved {} vehicles available for comparison", simplifiedAds.size());
+            return ResponseEntity.ok(simplifiedAds);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching available vehicles: {}", e.getMessage());
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error fetching vehicles"));
+        }
+    }
+
+    /**
+     * Compare multiple vehicles by their IDs
+     */
+    @GetMapping("/compare")
+    public ResponseEntity<?> compareVehicles(@RequestParam List<Long> ids) {
+        try {
+            if (ids == null || ids.size() < 2) {
+                return ResponseEntity.badRequest()
+                        .body(new MessageResponse("Please select at least 2 vehicles to compare"));
+            }
+
+            if (ids.size() > 4) {
+                return ResponseEntity.badRequest()
+                        .body(new MessageResponse("Maximum 4 vehicles can be compared at once"));
+            }
+
+            List<Advertisement> vehicles = new ArrayList<>();
+            for (Long id : ids) {
+                Optional<Advertisement> ad = adRepository.findById(id);
+                if (ad.isPresent() && ad.get().getFlag() == 1) {
+                    vehicles.add(ad.get());
+                }
+            }
+
+            if (vehicles.size() < 2) {
+                return ResponseEntity.badRequest()
+                        .body(new MessageResponse("Could not find enough valid vehicles to compare"));
+            }
+
+            logger.info("✅ Comparing {} vehicles: {}", vehicles.size(),
+                    vehicles.stream().map(Advertisement::getTitle).collect(Collectors.joining(", ")));
+
+            return ResponseEntity.ok(vehicles);
+        } catch (Exception e) {
+            logger.error("❌ Error comparing vehicles: {}", e.getMessage());
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error comparing vehicles"));
+        }
+    }
+
+    /**
+     * Get unique manufacturers for filter
+     */
+    @GetMapping("/compare/manufacturers")
+    public ResponseEntity<?> getManufacturers() {
+        try {
+            List<Advertisement> approvedAds = adRepository.getConfirmAd();
+            List<String> manufacturers = approvedAds.stream()
+                    .map(Advertisement::getManufacturer)
+                    .filter(m -> m != null && !m.isEmpty())
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(manufacturers);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching manufacturers: {}", e.getMessage());
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error fetching manufacturers"));
+        }
+    }
+
+    /**
+     * Get models for a specific manufacturer
+     */
+    @GetMapping("/compare/models/{manufacturer}")
+    public ResponseEntity<?> getModelsByManufacturer(@PathVariable String manufacturer) {
+        try {
+            List<Advertisement> approvedAds = adRepository.getConfirmAd();
+            List<Map<String, Object>> models = approvedAds.stream()
+                    .filter(ad -> manufacturer.equalsIgnoreCase(ad.getManufacturer()))
+                    .map(ad -> {
+                        Map<String, Object> map = new HashMap<>();
+                        map.put("id", ad.getId());
+                        map.put("model", ad.getModel());
+                        map.put("year", ad.getM_year());
+                        map.put("title", ad.getTitle());
+                        return map;
+                    })
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(models);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching models: {}", e.getMessage());
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error fetching models"));
+        }
     }
 }
