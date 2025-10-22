@@ -1,168 +1,47 @@
 package com.autocare.autocarebackend.controllers;
 
-import com.autocare.autocarebackend.models.IPlan;
-import com.autocare.autocarebackend.models.LPlan;
-import com.autocare.autocarebackend.models.User;
 import com.autocare.autocarebackend.models.Conversation;
 import com.autocare.autocarebackend.models.Message;
 import com.autocare.autocarebackend.models.UserInsuranceCompany;
 import com.autocare.autocarebackend.models.UserLeasingCompany;
-import com.autocare.autocarebackend.payload.request.SignupRequest;
-import com.autocare.autocarebackend.payload.request.MessageRequest;
 import com.autocare.autocarebackend.payload.request.ConversationRequest;
-import com.autocare.autocarebackend.payload.response.MessageResponse;
+import com.autocare.autocarebackend.payload.request.MessageRequest;
 import com.autocare.autocarebackend.payload.response.ConversationResponse;
-import com.autocare.autocarebackend.repository.IPlanRepository;
-import com.autocare.autocarebackend.repository.LPlanRepository;
-import com.autocare.autocarebackend.repository.RoleRepository;
-import com.autocare.autocarebackend.repository.UserRepository;
-import com.autocare.autocarebackend.repository.ConversationRepository;
-import com.autocare.autocarebackend.repository.MessageRepository;
-import com.autocare.autocarebackend.repository.UserInsuranceCompanyRepository;
-import com.autocare.autocarebackend.repository.UserLeasingCompanyRepository;
-import com.autocare.autocarebackend.security.services.NormalUserImpl;
+import com.autocare.autocarebackend.payload.response.MessageResponse;
+import com.autocare.autocarebackend.repository.*;
 import com.autocare.autocarebackend.security.services.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("/user")
-public class UserController {
+@RequestMapping("/api/messages")
+public class MessageController {
 
     @Autowired
-    UserRepository userRepository;
+    private ConversationRepository conversationRepository;
 
     @Autowired
-    RoleRepository roleRepository;
+    private MessageRepository messageRepository;
 
     @Autowired
-    PasswordEncoder encoder;
+    private UserInsuranceCompanyRepository userInsuranceCompanyRepository;
 
     @Autowired
-    NormalUserImpl normalUser;
-
-    @Autowired
-    LPlanRepository lPlanRepository;
-
-    @Autowired
-    IPlanRepository iPlanRepository;
-
-    @Autowired
-    ConversationRepository conversationRepository;
-
-    @Autowired
-    MessageRepository messageRepository;
-
-    @Autowired
-    UserInsuranceCompanyRepository userInsuranceCompanyRepository;
-
-    @Autowired
-    UserLeasingCompanyRepository userLeasingCompanyRepository;
+    private UserLeasingCompanyRepository userLeasingCompanyRepository;
 
     @Value("${upload.location}")
     private String fileLocation;
-
-    // ==================== EXISTING ENDPOINTS ====================
-
-    @GetMapping("/getallusers")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
-    }
-
-    @GetMapping("/total")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public long getTotalUsers() {
-        return userRepository.count();
-    }
-
-    @PutMapping("/editprofile")
-    @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_LCOMPANY') or hasRole('ROLE_ICOMPANY') or hasRole('ROLE_ADMIN') or hasRole('ROLE_AGENT')")
-    public ResponseEntity<?> editNormalUserEditProfile(@RequestBody SignupRequest signupRequest, Authentication authentication) {
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        User user = userRepository.findById(userDetails.getId()).get();
-
-        user.setFname(signupRequest.getFname());
-        user.setLname(signupRequest.getLname());
-        user.setTnumber(signupRequest.getTnumber());
-        user.setAddress(signupRequest.getAddress());
-        normalUser.editNormalUserEditProfile(user);
-        return ResponseEntity.ok(new MessageResponse("Account update successfully!"));
-    }
-
-    @PutMapping("/changepassword/{password}")
-    @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_LCOMPANY') or hasRole('ROLE_ICOMPANY') or hasRole('ROLE_ADMIN') or hasRole('ROLE_AGENT')")
-    public ResponseEntity<?> editPasswordProfile(@RequestBody SignupRequest signupRequest, @PathVariable String password, Authentication authentication) {
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        User user = userRepository.findById(userDetails.getId()).get();
-
-        if (encoder.matches(password, (user.getPassword()))) {
-            user.setPassword(encoder.encode(signupRequest.getPassword()));
-            normalUser.editNormalUserEditProfile(user);
-            return ResponseEntity.ok(new MessageResponse("Password Change successfully!"));
-        } else {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Password didn't match!"));
-        }
-    }
-
-    @PutMapping("/changephoto")
-    @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_LCOMPANY') or hasRole('ROLE_ICOMPANY') or hasRole('ROLE_ADMIN') or hasRole('ROLE_AGENT')")
-    public ResponseEntity<?> changeProfilePic(@RequestBody String image, Authentication authentication) {
-        byte[] imageofwrite = Base64.getDecoder().decode(image.split(",")[1]);
-        String imgId = UUID.randomUUID().toString();
-
-        try (FileOutputStream fos = new FileOutputStream(fileLocation + "/" + imgId)) {
-            fos.write(imageofwrite);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        User user = userRepository.findById(userDetails.getId()).get();
-        user.setImgId(imgId);
-        userRepository.save(user);
-
-        return ResponseEntity.ok(new MessageResponse("Account update successfully!"));
-    }
-
-    @GetMapping("/currentuser")
-    public User getCurrentUser(Authentication authentication) {
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        return userRepository.findById(userDetails.getId()).get();
-    }
-
-    @GetMapping("/getlplan/{adId}")
-    public List<LPlan> getLPlan(@PathVariable Long adId) {
-        return lPlanRepository.findAllByAdvertisement_Id(adId);
-    }
-
-    @GetMapping("/getiplan/{adId}")
-    public List<IPlan> getIPlan(@PathVariable Long adId) {
-        return iPlanRepository.findAllByAdvertisement_Id(adId);
-    }
-
-    @GetMapping("/getUserById/{id}")
-    public Optional<User> getUserById(@PathVariable Long id) {
-        return userRepository.findById(id);
-    }
-
-    // ==================== NEW MESSAGING ENDPOINTS ====================
 
     /**
      * Get all conversations for the authenticated user
@@ -297,6 +176,16 @@ public class UserController {
             return ResponseEntity.status(403).body(new MessageResponse("Access denied"));
         }
 
+        // Validate file
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("File is empty"));
+        }
+
+        // Check file size (5MB limit)
+        if (file.getSize() > 5 * 1024 * 1024) {
+            return ResponseEntity.badRequest().body(new MessageResponse("File size exceeds 5MB limit"));
+        }
+
         // Save file
         String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
         String attachmentPath = fileLocation + "/attachments/" + fileName;
@@ -308,6 +197,7 @@ public class UserController {
             }
             file.transferTo(new File(attachmentPath));
         } catch (IOException e) {
+            e.printStackTrace();
             return ResponseEntity.status(500).body(new MessageResponse("Failed to upload file"));
         }
 
@@ -330,9 +220,9 @@ public class UserController {
     }
 
     /**
-     * Get user's insurance companies
+     * Get user's insurance companies with active plans
      */
-    @GetMapping("/insurance-companies")
+    @GetMapping("/companies/insurance")
     @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<List<UserInsuranceCompany>> getInsuranceCompanies(Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
@@ -343,9 +233,9 @@ public class UserController {
     }
 
     /**
-     * Get user's leasing companies
+     * Get user's leasing companies with active leases
      */
-    @GetMapping("/leasing-companies")
+    @GetMapping("/companies/leasing")
     @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<List<UserLeasingCompany>> getLeasingCompanies(Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
@@ -356,9 +246,41 @@ public class UserController {
     }
 
     /**
+     * Get all companies (both insurance and leasing) for the user
+     */
+    @GetMapping("/companies/all")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<?> getAllCompanies(Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+        List<UserInsuranceCompany> insuranceCompanies = userInsuranceCompanyRepository.findByUserIdAndPlanStatus(
+                userDetails.getId(), "active"
+        );
+
+        List<UserLeasingCompany> leasingCompanies = userLeasingCompanyRepository.findByUserIdAndLeaseStatus(
+                userDetails.getId(), "active"
+        );
+
+        // Get unique company names
+        Set<String> insuranceNames = insuranceCompanies.stream()
+                .map(UserInsuranceCompany::getCompanyName)
+                .collect(Collectors.toSet());
+
+        Set<String> leasingNames = leasingCompanies.stream()
+                .map(UserLeasingCompany::getCompanyName)
+                .collect(Collectors.toSet());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("insuranceCompanies", insuranceNames);
+        response.put("leasingCompanies", leasingNames);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Get company details and active plans
      */
-    @GetMapping("/company/{companyName}")
+    @GetMapping("/companies/{companyName}/details")
     @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<?> getCompanyDetails(@PathVariable String companyName, Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
@@ -372,16 +294,26 @@ public class UserController {
         );
 
         Map<String, Object> response = new HashMap<>();
+        response.put("companyName", companyName);
         response.put("insurancePlans", insurancePlans);
         response.put("leasingPlans", leasingPlans);
+
+        // Determine company type
+        String type = null;
+        if (!insurancePlans.isEmpty()) {
+            type = "insurance";
+        } else if (!leasingPlans.isEmpty()) {
+            type = "leasing";
+        }
+        response.put("companyType", type);
 
         return ResponseEntity.ok(response);
     }
 
     /**
-     * Get unread message count
+     * Get unread message count for all conversations
      */
-    @GetMapping("/messages/unread-count")
+    @GetMapping("/unread-count")
     @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<?> getUnreadCount(Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
@@ -397,5 +329,64 @@ public class UserController {
         }
 
         return ResponseEntity.ok(Map.of("count", count));
+    }
+
+    /**
+     * Mark all messages in a conversation as read
+     */
+    @PutMapping("/conversations/{conversationId}/mark-read")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<?> markConversationAsRead(@PathVariable Long conversationId, Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+        // Verify user has access to this conversation
+        Optional<Conversation> conversation = conversationRepository.findById(conversationId);
+        if (conversation.isEmpty() || !conversation.get().getUserId().equals(userDetails.getId())) {
+            return ResponseEntity.status(403).body(new MessageResponse("Access denied"));
+        }
+
+        messageRepository.markMessagesAsRead(conversationId, "company");
+
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    /**
+     * Close a conversation
+     */
+    @PutMapping("/conversations/{conversationId}/close")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<?> closeConversation(@PathVariable Long conversationId, Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+        // Verify user has access to this conversation
+        Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
+        if (conversationOpt.isEmpty() || !conversationOpt.get().getUserId().equals(userDetails.getId())) {
+            return ResponseEntity.status(403).body(new MessageResponse("Access denied"));
+        }
+
+        Conversation conversation = conversationOpt.get();
+        conversation.setStatus("closed");
+        conversationRepository.save(conversation);
+
+        return ResponseEntity.ok(new MessageResponse("Conversation closed successfully"));
+    }
+
+    /**
+     * Delete a conversation and all its messages
+     */
+    @DeleteMapping("/conversations/{conversationId}")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<?> deleteConversation(@PathVariable Long conversationId, Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+        // Verify user has access to this conversation
+        Optional<Conversation> conversation = conversationRepository.findById(conversationId);
+        if (conversation.isEmpty() || !conversation.get().getUserId().equals(userDetails.getId())) {
+            return ResponseEntity.status(403).body(new MessageResponse("Access denied"));
+        }
+
+        conversationRepository.deleteById(conversationId);
+
+        return ResponseEntity.ok(new MessageResponse("Conversation deleted successfully"));
     }
 }
