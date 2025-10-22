@@ -20,6 +20,30 @@ public class Conversation {
     @Column(name = "company_name", nullable = false, length = 100)
     private String companyName;
 
+    // Add these two fields to your Conversation class:
+
+    @Column(name = "vehicle_id")
+    private Long vehicleId;
+
+    @Column(name = "inquiry_type")
+    private String inquiryType = "general"; // "general", "leasing_inquiry", "insurance_inquiry"
+
+    // Add getters and setters:
+    public Long getVehicleId() {
+        return vehicleId;
+    }
+
+    public void setVehicleId(Long vehicleId) {
+        this.vehicleId = vehicleId;
+    }
+
+    public String getInquiryType() {
+        return inquiryType;
+    }
+
+    public void setInquiryType(String inquiryType) {
+        this.inquiryType = inquiryType;
+    }
     @Column(name = "status")
     private String status = "active"; // "active" or "closed"
 

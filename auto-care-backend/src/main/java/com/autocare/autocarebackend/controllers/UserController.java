@@ -197,6 +197,9 @@ public class UserController {
     /**
      * Create a new conversation or get existing one
      */
+    /**
+     * Create a new conversation or get existing one (UPDATED)
+     */
     @PostMapping("/conversations")
     @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<?> createConversation(@RequestBody ConversationRequest request, Authentication authentication) {
@@ -218,8 +221,69 @@ public class UserController {
         conversation.setCompanyName(request.getCompanyName());
         conversation.setStatus("active");
 
+        // NEW: Add vehicle and inquiry type
+        if (request.getVehicleId() != null) {
+            conversation.setVehicleId(request.getVehicleId());
+        }
+        if (request.getInquiryType() != null) {
+            conversation.setInquiryType(request.getInquiryType());
+        }
+
         Conversation saved = conversationRepository.save(conversation);
         return ResponseEntity.ok(Map.of("conversationId", saved.getId()));
+    }
+
+    /**
+     * Get all available companies for messaging (NEW ENDPOINT)
+     */
+    @GetMapping("/companies/all")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<?> getAllAvailableCompanies(Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+        // Get distinct insurance companies
+        List<String> insuranceCompanies = userInsuranceCompanyRepository
+                .findDistinctCompanyNamesByUserId(userDetails.getId());
+
+        // Get distinct leasing companies
+        List<String> leasingCompanies = userLeasingCompanyRepository
+                .findDistinctCompanyNamesByUserId(userDetails.getId());
+
+        Map<String, List<String>> response = new HashMap<>();
+        response.put("insuranceCompanies", insuranceCompanies);
+        response.put("leasingCompanies", leasingCompanies);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get company details with user's plans (NEW ENDPOINT)
+     */
+    @GetMapping("/companies/{companyName}/details")
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<?> getCompanyDetailsForMessaging(@PathVariable String companyName, Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+        // Get insurance plans
+        List<UserInsuranceCompany> insurancePlans = userInsuranceCompanyRepository
+                .findByUserIdAndCompanyName(userDetails.getId(), companyName);
+
+        // Get leasing plans
+        List<UserLeasingCompany> leasingPlans = userLeasingCompanyRepository
+                .findByUserIdAndCompanyName(userDetails.getId(), companyName);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("companyName", companyName);
+
+        if (!insurancePlans.isEmpty()) {
+            response.put("companyType", "insurance");
+            response.put("insurancePlans", insurancePlans);
+        } else if (!leasingPlans.isEmpty()) {
+            response.put("companyType", "leasing");
+            response.put("leasingPlans", leasingPlans);
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     /**
