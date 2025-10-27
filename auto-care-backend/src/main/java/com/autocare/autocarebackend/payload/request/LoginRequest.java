@@ -1,6 +1,8 @@
 package com.autocare.autocarebackend.payload.request;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
+
+//import javax.validation.constraints.;
 
 public class LoginRequest {
 
