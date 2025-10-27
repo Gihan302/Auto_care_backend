@@ -4,58 +4,56 @@ import com.autocare.autocarebackend.models.Advertisement;
 import com.autocare.autocarebackend.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-
 import org.springframework.data.repository.query.Param;
-
 import org.springframework.stereotype.Repository;
-import org.springframework.util.RouteMatcher;
-
 
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface AdRepository extends JpaRepository<Advertisement,Long> {
+public interface AdRepository extends JpaRepository<Advertisement, Long> {
 
     @Override
     Optional<Advertisement> findById(Long id);
+
     boolean existsById(Long id);
 
     @Override
     List<Advertisement> findAll();
 
-
-
     List<Advertisement> findByUser(User user);
-
-
 
     List<Advertisement> findAllByUser(User user);
 
-    @Query(value = "Select u FROM Advertisement u where u.falg= 1")
+    // Get all approved advertisements (flag = 1)
+    @Query(value = "SELECT u FROM Advertisement u WHERE u.flag = 1")
     List<Advertisement> getConfirmAd();
 
-
-    @Query(value = "select u from Advertisement u where u.falg=0")
+    // Get all pending advertisements (flag = 0)
+    @Query(value = "SELECT u FROM Advertisement u WHERE u.flag = 0")
     List<Advertisement> getPendingAd();
 
-    @Query(value = "SELECT count(id) FROM Advertisement where user = :user and falg = 0")
-    public Long rcount(@Param("user") User user);
+    // Count remaining/pending ads for a user (flag = 0)
+    @Query(value = "SELECT COUNT(a.id) FROM Advertisement a WHERE a.user = :user AND a.flag = 0")
+    Long rcount(@Param("user") User user);
 
-    @Query(value = "SELECT count(id) FROM Advertisement where user = :user and falg = 1")
-    public Long pcount(@Param("user") User user);
+    // Count posted/approved ads for a user (flag = 1)
+    @Query(value = "SELECT COUNT(a.id) FROM Advertisement a WHERE a.user = :user AND a.flag = 1")
+    Long pcount(@Param("user") User user);
 
-    @Query(value = "SELECT a FROM Advertisement a WHERE a.user.id = :uid and a.id NOT IN (SELECT i.advertisement.id FROM IPlan i WHERE i.user.id = :uid)")
+    // Get ads not in IPlan for a user
+    @Query(value = "SELECT a FROM Advertisement a WHERE a.user.id = :uid AND a.id NOT IN (SELECT i.advertisement.id FROM IPlan i WHERE i.user.id = :uid)")
     List<Advertisement> getIPendingAd(@Param("uid") Long uid);
 
-    @Query(value = "SELECT a FROM Advertisement a WHERE a.user.id = :uid  and a.id  IN (SELECT i.advertisement.id FROM IPlan i WHERE i.user.id = :uid)")
+    // Get ads in IPlan for a user
+    @Query(value = "SELECT a FROM Advertisement a WHERE a.user.id = :uid AND a.id IN (SELECT i.advertisement.id FROM IPlan i WHERE i.user.id = :uid)")
     List<Advertisement> getIConfrimAd(@Param("uid") Long uid);
 
-    @Query(value = "SELECT a FROM Advertisement a WHERE a.user.id = :uid and a.id NOT IN (SELECT l.advertisement.id FROM LPlan l WHERE l.user.id = :uid)")
+    // Get ads not in LPlan for a user
+    @Query(value = "SELECT a FROM Advertisement a WHERE a.user.id = :uid AND a.id NOT IN (SELECT l.advertisement.id FROM LPlan l WHERE l.user.id = :uid)")
     List<Advertisement> getLPendingAd(@Param("uid") Long uid);
 
-    @Query(value = "SELECT a FROM Advertisement a WHERE a.user.id = :uid  and a.id  IN (SELECT l.advertisement.id FROM LPlan l WHERE l.user.id = :uid)")
+    // Get ads in LPlan for a user
+    @Query(value = "SELECT a FROM Advertisement a WHERE a.user.id = :uid AND a.id IN (SELECT l.advertisement.id FROM LPlan l WHERE l.user.id = :uid)")
     List<Advertisement> getLConfrimAd(@Param("uid") Long uid);
-
 }
-

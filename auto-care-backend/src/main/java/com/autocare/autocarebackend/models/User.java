@@ -3,8 +3,9 @@ package com.autocare.autocarebackend.models;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import jakarta.persistence.*;
-import javax.validation.constraints.Email;
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+
 import javax.validation.constraints.Size;
 import java.util.Date;
 import java.util.HashSet;

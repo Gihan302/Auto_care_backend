@@ -1,10 +1,11 @@
 package com.autocare.autocarebackend.models;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 import jakarta.persistence.*;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
+//import javax.validation.constraints.NotBlank;
+//import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Size;
 
 @Data

@@ -11,22 +11,30 @@ import com.autocare.autocarebackend.repository.UserRepository;
 import com.autocare.autocarebackend.security.services.AdDetailsImpl;
 import com.autocare.autocarebackend.security.services.ReportAdDetailsImpl;
 import com.autocare.autocarebackend.security.services.UserDetailsImpl;
+import com.autocare.autocarebackend.security.services.ImageUploadService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.util.*;
+import java.io.IOException;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/advertisement")
 public class AdController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AdController.class);
 
     @Autowired
     AdDetailsImpl adDetails;
@@ -40,112 +48,190 @@ public class AdController {
     @Autowired
     ReportAdDetailsImpl reportAdDetails;
 
-    @Value("${upload.location}")
-    private String fileLocation;
+    @Autowired
+    ImageUploadService imageUploadService;
 
-
-    @CrossOrigin(origins = "http://localhost:4200")
-
-    @PostMapping("/postadd")
-    @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_ADMIN') or hasRole('ROLE_AGENT')")
-    public Advertisement AddPost(@RequestBody AdRequest adRequest, Authentication authentication) {
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        User user = userRepository.findById(userDetails.getId()).get();
-
-        Date datetime = new Date();
-
-        String[] images = adRequest.getImages();
-        byte[] image1 = Base64.getDecoder().decode(images[0].split(",")[1]);
-        byte[] image2 = Base64.getDecoder().decode(images[1].split(",")[1]);
-        byte[] image3 = Base64.getDecoder().decode(images[2].split(",")[1]);
-        byte[] image4 = Base64.getDecoder().decode(images[3].split(",")[1]);
-        byte[] image5 = Base64.getDecoder().decode(images[4].split(",")[1]);
-        String image1Id = UUID.randomUUID().toString();
-        String image2Id = UUID.randomUUID().toString();
-        String image3Id = UUID.randomUUID().toString();
-        String image4Id = UUID.randomUUID().toString();
-        String image5Id = UUID.randomUUID().toString();
-
-        // add 5 images using object array
-        class Array {
-            protected String imageId;
-            protected byte[] image;
-
-            Array(String imageId, byte[] image) {
-                this.imageId = imageId;
-                this.image = image;
-            }
-        }
-        Array a1 = new Array(image1Id, image1);
-        Array a2 = new Array(image2Id, image2);
-        Array a3 = new Array(image3Id, image3);
-        Array a4 = new Array(image4Id, image4);
-        Array a5 = new Array(image5Id, image5);
-
-        Array[] img = {a1, a2, a3, a4, a5};
-
-        for (Array i : img) {
-            // System.out.println(i.imageId);
-            try (FileOutputStream fos = new FileOutputStream(fileLocation + "/" + i.imageId)) {
-                fos.write(i.image);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        Advertisement advertisement = new Advertisement(adRequest.getName(), adRequest.getT_number(),
-                adRequest.getEmail(), adRequest.getLocation(), adRequest.getTitle(), adRequest.getPrice(),
-                adRequest.getV_type(), adRequest.getManufacturer(), adRequest.getModel(), adRequest.getV_condition(),
-                adRequest.getM_year(), adRequest.getR_year(), adRequest.getMileage(), adRequest.getE_capacity(),
-                adRequest.getTransmission(), adRequest.getFuel_type(), adRequest.getColour(),
-                adRequest.getDescription(), image1Id, image2Id, image3Id, image4Id, image5Id, datetime,
-                adRequest.getFlag(), adRequest.getlStatus(), adRequest.getiStatus(), user);
-
-        // return userDetails.getUsername();
-        return adDetails.saveAdDetails(advertisement);
+    // Helper method to check if string is null or blank (Java 8 compatible)
+    private boolean isNullOrBlank(String str) {
+        return str == null || str.trim().isEmpty();
     }
 
-
-    @GetMapping("/getimage/{id}")
-    public ResponseEntity<InputStreamResource> getAddImage(@PathVariable String id) {
-        FileInputStream file = null;
+    @PostMapping("/postadd")
+    public ResponseEntity<?> AddPost(@RequestBody AdRequest adRequest) {
         try {
-            file = new FileInputStream(fileLocation + "/" + id);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            // Get authentication from SecurityContext
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+            logger.info("🔍 Authentication check: " + (authentication != null ? "Found" : "NULL"));
+
+            if (authentication == null || !authentication.isAuthenticated()) {
+                logger.error("❌ Authentication is null or not authenticated");
+                return ResponseEntity.status(401).body(new MessageResponse("Authentication required"));
+            }
+
+            Object principal = authentication.getPrincipal();
+            logger.info("🎯 Principal type: " + (principal != null ? principal.getClass().getSimpleName() : "NULL"));
+
+            if (!(principal instanceof UserDetailsImpl)) {
+                logger.error("❌ Invalid principal type: " + (principal != null ? principal.getClass() : "null"));
+                return ResponseEntity.status(401).body(new MessageResponse("Invalid authentication principal"));
+            }
+
+            UserDetailsImpl userDetails = (UserDetailsImpl) principal;
+            logger.info("👤 Authenticated user: " + userDetails.getUsername());
+
+            User user = userRepository.findById(userDetails.getId()).orElse(null);
+            if (user == null) {
+                logger.error("❌ User not found in database for ID: " + userDetails.getId());
+                return ResponseEntity.badRequest().body(new MessageResponse("Invalid user"));
+            }
+
+            logger.info("✅ User found: " + user.getUsername());
+
+            Date datetime = new Date();
+            String[] images = adRequest.getImages();
+
+            // Validate and prepare images array
+            String[] safeImages = new String[5];
+            if (images != null && images.length > 0) {
+                for (int i = 0; i < Math.min(5, images.length); i++) {
+                    safeImages[i] = images[i];
+                }
+            }
+
+            // Upload images to Cloudinary and collect URLs
+            String image1Url = null, image2Url = null, image3Url = null, image4Url = null, image5Url = null;
+
+            logger.info("🖼️ Processing " + (images != null ? images.length : 0) + " images");
+
+            // Upload each image correctly with proper null checks
+            if (!isNullOrBlank(safeImages[0])) {
+                logger.info("📤 Uploading image 1 to Cloudinary...");
+                image1Url = imageUploadService.uploadBase64(safeImages[0]);
+                logger.info("✅ Image 1 uploaded: " + image1Url);
+            }
+            if (!isNullOrBlank(safeImages[1])) {
+                logger.info("📤 Uploading image 2 to Cloudinary...");
+                image2Url = imageUploadService.uploadBase64(safeImages[1]);
+                logger.info("✅ Image 2 uploaded: " + image2Url);
+            }
+            if (!isNullOrBlank(safeImages[2])) {
+                logger.info("📤 Uploading image 3 to Cloudinary...");
+                image3Url = imageUploadService.uploadBase64(safeImages[2]);
+                logger.info("✅ Image 3 uploaded: " + image3Url);
+            }
+            if (!isNullOrBlank(safeImages[3])) {
+                logger.info("📤 Uploading image 4 to Cloudinary...");
+                image4Url = imageUploadService.uploadBase64(safeImages[3]);
+                logger.info("✅ Image 4 uploaded: " + image4Url);
+            }
+            if (!isNullOrBlank(safeImages[4])) {
+                logger.info("📤 Uploading image 5 to Cloudinary...");
+                image5Url = imageUploadService.uploadBase64(safeImages[4]);
+                logger.info("✅ Image 5 uploaded: " + image5Url);
+            }
+
+            // Create advertisement with flag = 0 (pending approval)
+            Advertisement advertisement = new Advertisement(
+                    adRequest.getName(),
+                    adRequest.getT_number(),
+                    adRequest.getEmail(),
+                    adRequest.getLocation(),
+                    adRequest.getTitle(),
+                    adRequest.getPrice(),
+                    adRequest.getV_type(),
+                    adRequest.getManufacturer(),
+                    adRequest.getModel(),
+                    adRequest.getV_condition(),
+                    adRequest.getM_year(),
+                    adRequest.getR_year(),
+                    adRequest.getMileage(),
+                    adRequest.getE_capacity(),
+                    adRequest.getTransmission(),
+                    adRequest.getFuel_type(),
+                    adRequest.getColour(),
+                    adRequest.getDescription(),
+                    image1Url, image2Url, image3Url, image4Url, image5Url,
+                    datetime,
+                    0, // Always set to 0 for pending approval
+                    adRequest.getlStatus(),
+                    adRequest.getiStatus(),
+                    user
+            );
+
+            Advertisement saved = adDetails.saveAdDetails(advertisement);
+            logger.info("🎉 Advertisement saved successfully with ID: {} (Pending admin approval)", saved.getId());
+
+            return ResponseEntity.ok()
+                    .body(new MessageResponse("Advertisement submitted successfully! It will be visible after admin approval."));
+
+        } catch (IOException ex) {
+            logger.error("💥 Cloudinary upload failed: " + ex.getMessage(), ex);
+            return ResponseEntity.status(500).body(new MessageResponse("Image upload failed: " + ex.getMessage()));
+        } catch (Exception ex) {
+            logger.error("💥 Server error: " + ex.getMessage(), ex);
+            return ResponseEntity.status(500).body(new MessageResponse("Server error: " + ex.getMessage()));
+        }
+    }
+    /**
+     * Returns the stored image URL (string) for a given advertisement id and image index.
+     */
+    @GetMapping(value = {"/getimage/{id}", "/getimage/{id}/{index}"})
+    public ResponseEntity<?> getAddImage(@PathVariable("id") Long id,
+                                         @PathVariable(name = "index", required = false) Integer index) {
+        Optional<Advertisement> opt = adRepository.findById(id);
+        if (opt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Advertisement ad = opt.get();
+
+        // If index not provided, return first non-null image URL
+        if (index == null) {
+            if (ad.getImage1() != null) return ResponseEntity.ok(ad.getImage1());
+            if (ad.getImage2() != null) return ResponseEntity.ok(ad.getImage2());
+            if (ad.getImage3() != null) return ResponseEntity.ok(ad.getImage3());
+            if (ad.getImage4() != null) return ResponseEntity.ok(ad.getImage4());
+            if (ad.getImage5() != null) return ResponseEntity.ok(ad.getImage5());
+            return ResponseEntity.noContent().build();
         }
 
-        return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(new InputStreamResource(file));
+        switch (index) {
+            case 1:
+                return ad.getImage1() != null ? ResponseEntity.ok(ad.getImage1()) : ResponseEntity.noContent().build();
+            case 2:
+                return ad.getImage2() != null ? ResponseEntity.ok(ad.getImage2()) : ResponseEntity.noContent().build();
+            case 3:
+                return ad.getImage3() != null ? ResponseEntity.ok(ad.getImage3()) : ResponseEntity.noContent().build();
+            case 4:
+                return ad.getImage4() != null ? ResponseEntity.ok(ad.getImage4()) : ResponseEntity.noContent().build();
+            case 5:
+                return ad.getImage5() != null ? ResponseEntity.ok(ad.getImage5()) : ResponseEntity.noContent().build();
+            default:
+                return ResponseEntity.badRequest().body(new MessageResponse("Index must be between 1 and 5"));
+        }
     }
 
     @GetMapping("/getconfrimad")
     public List<Advertisement> getComnfirmAd() {
-
         return adRepository.getConfirmAd();
     }
 
     @GetMapping("/getnewad")
     public List<Advertisement> getPendingAd() {
-
         return adRepository.getPendingAd();
     }
 
-    //    @GetMapping("/getconfrimad")
-//    public List<Advertisement> getAllAd() {
-//        return adRepository.findAll();
-//    }
     @GetMapping("/getAdById/{id}")
     public Optional<Advertisement> gedAdById(@PathVariable Long id) {
-        System.out.println(id);
-        System.out.println("get add");
         return adRepository.findById(id);
     }
 
     @PostMapping("/reportad/{id}")
     public ResponseEntity<?> ReportAdpost(@PathVariable Long id, @RequestBody ReportAdRequest reportAdRequest) {
-        Advertisement advertisement = adRepository.findById(id).get();
+        Advertisement advertisement = adRepository.findById(id).orElse(null);
+        if (advertisement == null) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Invalid advertisement id"));
+        }
 
         ReportAd reportAd = new ReportAd(reportAdRequest.getReason(), reportAdRequest.getF_name(),
                 reportAdRequest.getL_name(), reportAdRequest.getT_number(), reportAdRequest.getEmail(),
@@ -155,24 +241,163 @@ public class AdController {
     }
 
     @GetMapping("/getAddsByCurrentUser")
-    public List<Advertisement> GetAddsByUser(Authentication authentication) {
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        User user = userRepository.findById(userDetails.getId()).get();
+    public List<Advertisement> GetAddsByUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl)) {
+            return List.of();
+        }
 
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User user = userRepository.findById(userDetails.getId()).orElse(null);
+        if (user == null) return List.of();
         return adRepository.findByUser(user);
     }
 
     @GetMapping("/countremainad")
-    public Long CountremainAd(Authentication authentication) {
+    public Long CountremainAd() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl)) {
+            return 0L;
+        }
+
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        User user = userRepository.findById(userDetails.getId()).get();
+        User user = userRepository.findById(userDetails.getId()).orElse(null);
+        if (user == null) return 0L;
         return adRepository.rcount(user);
     }
 
     @GetMapping("/countpostedad")
-    public Long CountpostedAd(Authentication authentication) {
+    public Long CountpostedAd() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl)) {
+            return 0L;
+        }
+
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        User user = userRepository.findById(userDetails.getId()).get();
+        User user = userRepository.findById(userDetails.getId()).orElse(null);
+        if (user == null) return 0L;
         return adRepository.pcount(user);
+    }
+    // Add these methods to your AdController.java
+
+    /**
+     * Get all approved advertisements for comparison selection
+     */
+    @GetMapping("/compare/available")
+    public ResponseEntity<?> getAvailableForComparison() {
+        try {
+            // Get only approved ads (flag = 1)
+            List<Advertisement> approvedAds = adRepository.getConfirmAd();
+
+            // Return simplified data for selection dropdown
+            List<Map<String, Object>> simplifiedAds = approvedAds.stream()
+                    .map(ad -> {
+                        Map<String, Object> map = new HashMap<>();
+                        map.put("id", ad.getId());
+                        map.put("title", ad.getTitle());
+                        map.put("manufacturer", ad.getManufacturer());
+                        map.put("model", ad.getModel());
+                        map.put("year", ad.getM_year());
+                        map.put("v_type", ad.getV_type());
+                        return map;
+                    })
+                    .collect(Collectors.toList());
+
+            logger.info("✅ Retrieved {} vehicles available for comparison", simplifiedAds.size());
+            return ResponseEntity.ok(simplifiedAds);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching available vehicles: {}", e.getMessage());
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error fetching vehicles"));
+        }
+    }
+
+    /**
+     * Compare multiple vehicles by their IDs
+     */
+    @GetMapping("/compare")
+    public ResponseEntity<?> compareVehicles(@RequestParam List<Long> ids) {
+        try {
+            if (ids == null || ids.size() < 2) {
+                return ResponseEntity.badRequest()
+                        .body(new MessageResponse("Please select at least 2 vehicles to compare"));
+            }
+
+            if (ids.size() > 4) {
+                return ResponseEntity.badRequest()
+                        .body(new MessageResponse("Maximum 4 vehicles can be compared at once"));
+            }
+
+            List<Advertisement> vehicles = new ArrayList<>();
+            for (Long id : ids) {
+                Optional<Advertisement> ad = adRepository.findById(id);
+                if (ad.isPresent() && ad.get().getFlag() == 1) {
+                    vehicles.add(ad.get());
+                }
+            }
+
+            if (vehicles.size() < 2) {
+                return ResponseEntity.badRequest()
+                        .body(new MessageResponse("Could not find enough valid vehicles to compare"));
+            }
+
+            logger.info("✅ Comparing {} vehicles: {}", vehicles.size(),
+                    vehicles.stream().map(Advertisement::getTitle).collect(Collectors.joining(", ")));
+
+            return ResponseEntity.ok(vehicles);
+        } catch (Exception e) {
+            logger.error("❌ Error comparing vehicles: {}", e.getMessage());
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error comparing vehicles"));
+        }
+    }
+
+    /**
+     * Get unique manufacturers for filter
+     */
+    @GetMapping("/compare/manufacturers")
+    public ResponseEntity<?> getManufacturers() {
+        try {
+            List<Advertisement> approvedAds = adRepository.getConfirmAd();
+            List<String> manufacturers = approvedAds.stream()
+                    .map(Advertisement::getManufacturer)
+                    .filter(m -> m != null && !m.isEmpty())
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(manufacturers);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching manufacturers: {}", e.getMessage());
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error fetching manufacturers"));
+        }
+    }
+
+    /**
+     * Get models for a specific manufacturer
+     */
+    @GetMapping("/compare/models/{manufacturer}")
+    public ResponseEntity<?> getModelsByManufacturer(@PathVariable String manufacturer) {
+        try {
+            List<Advertisement> approvedAds = adRepository.getConfirmAd();
+            List<Map<String, Object>> models = approvedAds.stream()
+                    .filter(ad -> manufacturer.equalsIgnoreCase(ad.getManufacturer()))
+                    .map(ad -> {
+                        Map<String, Object> map = new HashMap<>();
+                        map.put("id", ad.getId());
+                        map.put("model", ad.getModel());
+                        map.put("year", ad.getM_year());
+                        map.put("title", ad.getTitle());
+                        return map;
+                    })
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(models);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching models: {}", e.getMessage());
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error fetching models"));
+        }
     }
 }
