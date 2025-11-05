@@ -1,14 +1,12 @@
 package com.autocare.autocarebackend.models;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -20,7 +18,7 @@ public class Advertisement {
     private Long id;
 
     @NotBlank
-    private  String name;
+    private String name;
 
     @NotBlank
     private String t_number;
@@ -77,20 +75,17 @@ public class Advertisement {
     private String image1;
 
     private String image2;
-
     private String image3;
-
     private String image4;
-
     private String image5;
 
     @Column(name = "time")
     @Temporal(TemporalType.TIMESTAMP)
-    @JsonFormat(pattern="yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private Date datetime;
 
     @NotNull
-    private Integer falg;
+    private Integer flag;
 
     @NotNull
     private Integer lStatus;
@@ -113,10 +108,14 @@ public class Advertisement {
     @JsonManagedReference
     private List<LPlan> lPlans;
 
-    public Advertisement(){}
+    public Advertisement() {
+    }
 
-
-    public Advertisement(@NotBlank String name, @NotBlank String t_number, @NotBlank String email, @NotBlank String location, @NotBlank String title, @NotBlank String price, @NotBlank String v_type, @NotBlank String manufacturer, @NotBlank String model, @NotBlank String v_condition, @NotBlank String m_year, @NotBlank String r_year, @NotBlank String mileage, @NotBlank String e_capacity, @NotBlank String transmission, @NotBlank String fuel_type, @NotBlank String colour, @NotBlank String description, String image1, String image2, String image3, String image4, String image5, Date datetime, @NotNull Integer falg, @NotNull Integer lStatus, @NotNull Integer iStatus, User user) {
+    public Advertisement(String name, String t_number, String email, String location, String title, String price,
+                         String v_type, String manufacturer, String model, String v_condition, String m_year,
+                         String r_year, String mileage, String e_capacity, String transmission, String fuel_type,
+                         String colour, String description, String image1, String image2, String image3, String image4,
+                         String image5, Date datetime, Integer flag, Integer lStatus, Integer iStatus, User user) {
         this.name = name;
         this.t_number = t_number;
         this.email = email;
@@ -141,13 +140,17 @@ public class Advertisement {
         this.image4 = image4;
         this.image5 = image5;
         this.datetime = datetime;
-        this.falg = falg;
+        this.flag = flag;
         this.lStatus = lStatus;
         this.iStatus = iStatus;
         this.user = user;
     }
 
-//    public Date getDatetime() {
+    // Getters and setters (omitted here to save space — keep your previous ones)
+    // Include all getters & setters exactly as in your original file for compilation.
+    // e.g. getImage1(), setImage1(...), getId(), setId(...), ...
+    // (Paste your original getters/setters in your project)
+    //    public Date getDatetime() {
 //        return datetime;
 //    }
 //
@@ -291,12 +294,12 @@ public class Advertisement {
         this.m_year = m_year;
     }
 
-    public Integer getFalg() {
-        return falg;
+    public Integer getFlag() {
+        return flag;
     }
 
-    public void setFalg(Integer falg) {
-        this.falg = falg;
+    public void setFlag(Integer flag) {
+        this.flag = flag;
     }
 
     public String getR_year() {

@@ -2,11 +2,11 @@ package com.autocare.autocarebackend.models;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-
-import jakarta.persistence.*;
 import javax.validation.constraints.NotBlank;
-import java.util.HashSet;
-import java.util.Set;
+import jakarta.persistence.*;
+import javax.validation.constraints.NotNull;
+//import java.util.HashSet;
+//import java.util.Set;
 
 @Entity
 @Table(name = "reportad")
