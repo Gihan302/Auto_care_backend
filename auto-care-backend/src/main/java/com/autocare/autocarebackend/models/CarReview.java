@@ -28,7 +28,7 @@ public class CarReview {
     private String carModel;
 
     @NotNull(message = "Year is required")
-    @Column(nullable = false)
+    @Column(nullable = false, name = "review_year")
     private Integer year;
 
     @Column(length = 100)
@@ -67,7 +67,7 @@ public class CarReview {
 
     @NotNull
     @Min(1) @Max(5)
-    @Column(nullable = false)
+    @Column(nullable = false, name = "value_for_money")
     private Integer value;
 
     // Review Details
