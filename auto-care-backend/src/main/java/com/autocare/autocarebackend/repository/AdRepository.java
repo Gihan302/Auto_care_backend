@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,4 +57,52 @@ public interface AdRepository extends JpaRepository<Advertisement, Long> {
     // Get ads in LPlan for a user
     @Query(value = "SELECT a FROM Advertisement a WHERE a.user.id = :uid AND a.id IN (SELECT l.advertisement.id FROM LPlan l WHERE l.user.id = :uid)")
     List<Advertisement> getLConfrimAd(@Param("uid") Long uid);
+
+    // 1. Count vehicles by manufacturer
+    @Query("SELECT a.manufacturer, COUNT(a) FROM Advertisement a WHERE a.flag = 1 GROUP BY a.manufacturer")
+    List<Object[]> countByManufacturer();
+
+    // 2. Count vehicles by type
+    @Query("SELECT a.v_type, COUNT(a) FROM Advertisement a WHERE a.flag = 1 GROUP BY a.v_type")
+    List<Object[]> countByVehicleType();
+
+    // 3. Count vehicles by fuel type
+    @Query("SELECT a.fuel_type, COUNT(a) FROM Advertisement a WHERE a.flag = 1 GROUP BY a.fuel_type")
+    List<Object[]> countByFuelType();
+
+    // 4. Count vehicles by condition
+    @Query("SELECT a.v_condition, COUNT(a) FROM Advertisement a WHERE a.flag = 1 GROUP BY a.v_condition")
+    List<Object[]> countByCondition();
+
+    // 5. Get listings created in last N days
+    @Query("SELECT a FROM Advertisement a WHERE a.datetime >= :startDate ORDER BY a.datetime DESC")
+    List<Advertisement> findRecentListings(@Param("startDate") Date startDate);
+
+    // 6. Count by status flags
+    @Query("SELECT " +
+            "SUM(CASE WHEN a.lStatus = 1 THEN 1 ELSE 0 END) as withLeasing, " +
+            "SUM(CASE WHEN a.iStatus = 1 THEN 1 ELSE 0 END) as withInsurance, " +
+            "SUM(CASE WHEN a.lStatus = 1 AND a.iStatus = 1 THEN 1 ELSE 0 END) as withBoth " +
+            "FROM Advertisement a WHERE a.flag = 1")
+    Object[] countByStatus();
+
+    // 7. Monthly statistics
+    @Query("SELECT " +
+            "YEAR(a.datetime) as year, " +
+            "MONTH(a.datetime) as month, " +
+            "COUNT(a) as count, " +
+            "AVG(CAST(a.price AS double)) as avgPrice " +
+            "FROM Advertisement a " +
+            "WHERE a.datetime >= :startDate " +
+            "GROUP BY YEAR(a.datetime), MONTH(a.datetime) " +
+            "ORDER BY year DESC, month DESC")
+    List<Object[]> getMonthlyStatistics(@Param("startDate") Date startDate);
+
+    // 8. Top manufacturers with average price
+    @Query("SELECT a.manufacturer, COUNT(a), AVG(CAST(a.price AS double)) " +
+            "FROM Advertisement a " +
+            "WHERE a.flag = 1 AND a.manufacturer IS NOT NULL " +
+            "GROUP BY a.manufacturer " +
+            "ORDER BY COUNT(a) DESC")
+    List<Object[]> getTopManufacturersWithPrice();
 }

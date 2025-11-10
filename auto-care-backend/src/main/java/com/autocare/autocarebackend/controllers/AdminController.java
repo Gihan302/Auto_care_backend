@@ -1,11 +1,13 @@
 package com.autocare.autocarebackend.controllers;
 
+import com.autocare.autocarebackend.dto.AnalyticsDTO.*;
 import com.autocare.autocarebackend.models.Advertisement;
 import com.autocare.autocarebackend.models.CarReview;
 import com.autocare.autocarebackend.payload.response.MessageResponse;
 import com.autocare.autocarebackend.payload.response.ReviewResponse;
 import com.autocare.autocarebackend.repository.AdRepository;
 import com.autocare.autocarebackend.repository.ReviewRepository;
+import com.autocare.autocarebackend.security.services.AnalyticsService;
 import com.autocare.autocarebackend.security.services.ReviewDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +35,95 @@ public class AdminController {
 
     @Autowired
     private ReviewDetailsImpl reviewDetails;
+
+    @Autowired
+    private AnalyticsService analyticsService;
+
+    // ============================================
+    // ANALYTICS ENDPOINTS
+    // ============================================
+
+    @GetMapping("/analytics/overview")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getOverviewMetrics(
+            @RequestParam(defaultValue = "monthly") String period
+    ) {
+        try {
+            OverviewMetrics metrics = analyticsService.getOverviewMetrics(period);
+            logger.info("📊 Analytics Overview - Period: {}, Total Listings: {}",
+                    period, metrics.getTotalListings());
+            return ResponseEntity.ok(metrics);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching overview metrics: {}", e.getMessage());
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error fetching overview metrics"));
+        }
+    }
+
+    @GetMapping("/analytics/manufacturers")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getManufacturerStats(
+            @RequestParam(defaultValue = "monthly") String period
+    ) {
+        try {
+            List<ManufacturerStats> stats = analyticsService.getManufacturerStats(period);
+            logger.info("📊 Manufacturer Stats - Period: {}, Count: {}", period, stats.size());
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching manufacturer stats: {}", e.getMessage());
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error fetching manufacturer statistics"));
+        }
+    }
+
+    @GetMapping("/analytics/timeseries")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getTimeSeriesData(
+            @RequestParam(defaultValue = "monthly") String period
+    ) {
+        try {
+            List<TimeSeriesData> data = analyticsService.getTimeSeriesData(period);
+            logger.info("📊 Time Series Data - Period: {}, Data Points: {}", period, data.size());
+            return ResponseEntity.ok(data);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching time series data: {}", e.getMessage());
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error fetching time series data"));
+        }
+    }
+
+    @GetMapping("/analytics/vehicle-types")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getVehicleTypeStats(
+            @RequestParam(defaultValue = "monthly") String period
+    ) {
+        try {
+            List<VehicleTypeStats> stats = analyticsService.getVehicleTypeStats(period);
+            logger.info("📊 Vehicle Type Stats - Period: {}, Count: {}", period, stats.size());
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching vehicle type stats: {}", e.getMessage());
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error fetching vehicle type statistics"));
+        }
+    }
+
+    @GetMapping("/analytics/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getStatusMetrics(
+            @RequestParam(defaultValue = "monthly") String period
+    ) {
+        try {
+            StatusMetrics metrics = analyticsService.getStatusMetrics(period);
+            logger.info("📊 Status Metrics - Period: {}, With Leasing: {}, With Insurance: {}",
+                    period, metrics.getWithLeasing(), metrics.getWithInsurance());
+            return ResponseEntity.ok(metrics);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching status metrics: {}", e.getMessage());
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error fetching status metrics"));
+        }
+    }
 
     // ============================================
     // ADVERTISEMENT MANAGEMENT ENDPOINTS
@@ -111,7 +202,7 @@ public class AdminController {
             }
 
             Advertisement ad = adOpt.get();
-            ad.setFlag(1); // Approve the advertisement
+            ad.setFlag(1);
             adRepository.save(ad);
 
             logger.info("✅ Advertisement approved - ID: {}, Title: {}", id, ad.getTitle());
@@ -165,9 +256,6 @@ public class AdminController {
     // REVIEW MANAGEMENT ENDPOINTS
     // ============================================
 
-    /**
-     * Get all reviews (pending, approved, rejected) for admin
-     */
     @GetMapping("/reviews/all")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getAllReviews() {
@@ -186,9 +274,6 @@ public class AdminController {
         }
     }
 
-    /**
-     * Get pending reviews for admin approval
-     */
     @GetMapping("/reviews/pending")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getPendingReviews() {
@@ -207,9 +292,6 @@ public class AdminController {
         }
     }
 
-    /**
-     * Get approved reviews
-     */
     @GetMapping("/reviews/approved")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getApprovedReviews() {
@@ -228,9 +310,6 @@ public class AdminController {
         }
     }
 
-    /**
-     * Get rejected reviews
-     */
     @GetMapping("/reviews/rejected")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getRejectedReviews() {
@@ -249,9 +328,6 @@ public class AdminController {
         }
     }
 
-    /**
-     * Get single review by ID (admin)
-     */
     @GetMapping("/reviews/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getReviewById(@PathVariable Long id) {
@@ -273,9 +349,6 @@ public class AdminController {
         }
     }
 
-    /**
-     * Approve review (Admin only)
-     */
     @PutMapping("/reviews/approve/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> approveReview(@PathVariable Long id) {
@@ -296,14 +369,11 @@ public class AdminController {
         }
     }
 
-    /**
-     * Reject review (Admin only) - Sets flag to -1
-     */
     @PutMapping("/reviews/reject/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> rejectReview(@PathVariable Long id) {
         try {
-            CarReview review = reviewDetails.rejectReview(id);  // ✅ Now returns CarReview
+            CarReview review = reviewDetails.rejectReview(id);
             if (review == null) {
                 logger.warn("⚠️ Review not found with ID: {}", id);
                 return ResponseEntity.status(404)
@@ -319,9 +389,6 @@ public class AdminController {
         }
     }
 
-    /**
-     * Delete review permanently (Admin only)
-     */
     @DeleteMapping("/reviews/delete/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteReview(@PathVariable Long id) {
@@ -346,9 +413,6 @@ public class AdminController {
         }
     }
 
-    /**
-     * Get review statistics for admin dashboard
-     */
     @GetMapping("/reviews/stats")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getReviewStats() {
@@ -377,9 +441,6 @@ public class AdminController {
         }
     }
 
-    /**
-     * Get pending reviews count
-     */
     @GetMapping("/reviews/pending/count")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getPendingReviewsCount() {
