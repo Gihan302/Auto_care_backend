@@ -42,20 +42,28 @@ public interface AdRepository extends JpaRepository<Advertisement, Long> {
     @Query(value = "SELECT COUNT(a.id) FROM Advertisement a WHERE a.user = :user AND a.flag = 1")
     Long pcount(@Param("user") User user);
 
-    // Get ads not in IPlan for a user
-    @Query(value = "SELECT a FROM Advertisement a WHERE a.user.id = :uid AND a.id NOT IN (SELECT i.advertisement.id FROM IPlan i WHERE i.user.id = :uid)")
+    // --- LOGIC FIX ---
+    // Get ads not in IPlan for a specific Insurance company.
+    // Removed "a.user.id = :uid" to find ads from ALL users.
+    @Query(value = "SELECT a FROM Advertisement a WHERE a.id NOT IN (SELECT i.advertisement.id FROM IPlan i WHERE i.user.id = :uid)")
     List<Advertisement> getIPendingAd(@Param("uid") Long uid);
 
-    // Get ads in IPlan for a user
-    @Query(value = "SELECT a FROM Advertisement a WHERE a.user.id = :uid AND a.id IN (SELECT i.advertisement.id FROM IPlan i WHERE i.user.id = :uid)")
+    // --- LOGIC FIX ---
+    // Get ads in IPlan for a specific Insurance company.
+    // Removed "a.user.id = :uid" to find ads from ALL users.
+    @Query(value = "SELECT a FROM Advertisement a WHERE a.id IN (SELECT i.advertisement.id FROM IPlan i WHERE i.user.id = :uid)")
     List<Advertisement> getIConfrimAd(@Param("uid") Long uid);
 
-    // Get ads not in LPlan for a user
-    @Query(value = "SELECT a FROM Advertisement a WHERE a.user.id = :uid AND a.id NOT IN (SELECT l.advertisement.id FROM LPlan l WHERE l.user.id = :uid)")
+    // --- LOGIC FIX ---
+    // Get ads not in LPlan for a specific Leasing company.
+    // Removed "a.user.id = :uid" to find ads from ALL users that this company hasn't added a plan to.
+    @Query(value = "SELECT a FROM Advertisement a WHERE a.id NOT IN (SELECT l.advertisement.id FROM LPlan l WHERE l.user.id = :uid)")
     List<Advertisement> getLPendingAd(@Param("uid") Long uid);
 
-    // Get ads in LPlan for a user
-    @Query(value = "SELECT a FROM Advertisement a WHERE a.user.id = :uid AND a.id IN (SELECT l.advertisement.id FROM LPlan l WHERE l.user.id = :uid)")
+    // --- LOGIC FIX ---
+    // Get ads in LPlan for a specific Leasing company.
+    // Removed "a.user.id = :uid" to find ads from ALL users that this company HAS added a plan to.
+    @Query(value = "SELECT a FROM Advertisement a WHERE a.id IN (SELECT l.advertisement.id FROM LPlan l WHERE l.user.id = :uid)")
     List<Advertisement> getLConfrimAd(@Param("uid") Long uid);
 
     // 1. Count vehicles by manufacturer

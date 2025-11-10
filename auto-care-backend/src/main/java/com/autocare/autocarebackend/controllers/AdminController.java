@@ -125,6 +125,27 @@ public class AdminController {
         }
     }
 
+    @Autowired
+    private com.autocare.autocarebackend.repository.UserRepository userRepository;
+
+    // ============================================
+    // USER MANAGEMENT ENDPOINTS
+    // ============================================
+
+    @GetMapping("/users/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getAllUsers() {
+        try {
+            List<com.autocare.autocarebackend.models.User> users = userRepository.findAll();
+            logger.info("📋 Retrieved {} total users", users.size());
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching all users: {}", e.getMessage());
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error fetching users"));
+        }
+    }
+
     // ============================================
     // ADVERTISEMENT MANAGEMENT ENDPOINTS
     // ============================================
