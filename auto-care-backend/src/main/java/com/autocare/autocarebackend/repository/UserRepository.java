@@ -1,5 +1,6 @@
 package com.autocare.autocarebackend.repository;
 
+import com.autocare.autocarebackend.models.EAccountStatus;
 import com.autocare.autocarebackend.models.Role;
 import com.autocare.autocarebackend.models.User;
 import org.springframework.data.repository.CrudRepository;
@@ -23,7 +24,12 @@ public interface UserRepository extends CrudRepository<User, Long> {
     @Override
     List<User> findAll();
 
-    long count(); // already provided by CrudRepository, but explicitly declared here
+    long count();
 
     List<User> findAllByRolesContaining(Role role);
+
+    // Add new methods for approval system
+    List<User> findAllByAccountStatus(EAccountStatus status);
+
+    List<User> findAllByAccountStatusAndRolesContaining(EAccountStatus status, Role role);
 }

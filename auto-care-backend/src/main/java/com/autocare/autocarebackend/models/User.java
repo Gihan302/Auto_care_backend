@@ -56,24 +56,49 @@ public class User {
     @Size(max = 120)
     private String address;
 
-    //@NotBlank
     private String imgId;
 
-
     @Column(name = "register_date")
-//    @Temporal(TemporalType.TIMESTAMP)
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date date;
+
+    // ============ APPROVAL SYSTEM FIELDS ============
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status", length = 20)
+    private EAccountStatus accountStatus; // ✅ REMOVED DEFAULT - will be set by controller
+
+    @Column(name = "approved_by")
+    private Long approvedBy;
+
+    @Column(name = "approved_at")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date approvedAt;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+    // ================================================
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
 
+    // ✅ DEFAULT CONSTRUCTOR - No default status set here
     public User() {
     }
 
-    public User(@NotBlank @Size(max = 20) String fname, @NotBlank @Size(max = 20) String lname, @NotBlank @Size(max = 12) String tnumber, @NotBlank @Size(max = 20) String nic, @NotBlank @Size(max = 50) @Email String username, @NotBlank @Size(max = 120) String password, @Size(max = 120) String cName, @Size String regNum, @Size String address, @NotBlank String imgId , Date date) {
+    // ✅ PARAMETERIZED CONSTRUCTOR - No default status set here either
+    public User(@NotBlank @Size(max = 20) String fname,
+                @NotBlank @Size(max = 20) String lname,
+                @NotBlank @Size(max = 12) String tnumber,
+                @NotBlank @Size(max = 20) String nic,
+                @NotBlank @Size(max = 50) @Email String username,
+                @NotBlank @Size(max = 120) String password,
+                @Size(max = 120) String cName,
+                @Size String regNum,
+                @Size String address,
+                @NotBlank String imgId,
+                Date date) {
         this.fname = fname;
         this.lname = lname;
         this.tnumber = tnumber;
@@ -85,8 +110,11 @@ public class User {
         this.address = address;
         this.imgId = imgId;
         this.date = date;
+        // ✅ REMOVED: this.accountStatus = EAccountStatus.APPROVED;
+        // Let the controller set the status based on user type
     }
 
+    // ============ EXISTING GETTERS AND SETTERS ============
     public Long getId() {
         return id;
     }
@@ -189,5 +217,38 @@ public class User {
 
     public void setRoles(Set<Role> roles) {
         this.roles = roles;
+    }
+
+    // ============ APPROVAL SYSTEM GETTERS AND SETTERS ============
+    public EAccountStatus getAccountStatus() {
+        return accountStatus;
+    }
+
+    public void setAccountStatus(EAccountStatus accountStatus) {
+        this.accountStatus = accountStatus;
+    }
+
+    public Long getApprovedBy() {
+        return approvedBy;
+    }
+
+    public void setApprovedBy(Long approvedBy) {
+        this.approvedBy = approvedBy;
+    }
+
+    public Date getApprovedAt() {
+        return approvedAt;
+    }
+
+    public void setApprovedAt(Date approvedAt) {
+        this.approvedAt = approvedAt;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
     }
 }
