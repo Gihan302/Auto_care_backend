@@ -158,6 +158,7 @@ public class AdminController {
 // Replace the entire method in AdminController.java
 // ============================================
 
+
     @PutMapping("/users/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateUserStatus(
@@ -166,6 +167,10 @@ public class AdminController {
 
         logger.info("🔄 Processing status update request for user ID: {}", id);
         logger.info("📦 Request body: {}", statusRequest);
+        logger.info("🔍 ===== UPDATE STATUS METHOD CALLED =====");
+        logger.info("🔍 User ID: {}", id);
+        logger.info("🔍 Request Body: {}", statusRequest);
+        logger.info("🔍 EmailService is: {}", emailService != null ? "LOADED" : "NULL");
 
         try {
             // Validate request

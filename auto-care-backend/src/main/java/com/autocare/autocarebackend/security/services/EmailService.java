@@ -26,181 +26,160 @@ public class EmailService {
     @Value("${sendgrid.from.name:AutoCare Platform}")
     private String fromName;
 
-    /**
-     * Send approval email to user
-     */
-    public void sendApprovalEmail(User user) throws IOException {
-        logger.info("📧 Preparing to send approval email to: {}", user.getUsername());
-
-        String subject = "Account Approved - Welcome to AutoCare Platform";
-        String htmlContent = buildApprovalEmailContent(user);
-
-        sendEmail(user.getUsername(), subject, htmlContent);
-        logger.info("✅ Approval email sent successfully to: {}", user.getUsername());
+    public boolean sendApprovalEmail(User user) {
+        logger.info("📧 Attempting to send approval email to: {}", user.getUsername());
+        return sendEmail(user, "APPROVED");
     }
 
-    /**
-     * Send rejection email to user
-     */
-    public void sendRejectionEmail(User user) throws IOException {
-        logger.info("📧 Preparing to send rejection email to: {}", user.getUsername());
-
-        String subject = "Account Registration Update - AutoCare Platform";
-        String htmlContent = buildRejectionEmailContent(user);
-
-        sendEmail(user.getUsername(), subject, htmlContent);
-        logger.info("✅ Rejection email sent successfully to: {}", user.getUsername());
+    public boolean sendRejectionEmail(User user) {
+        logger.info("📧 Attempting to send rejection email to: {}", user.getUsername());
+        return sendEmail(user, "REJECTED");
     }
 
-    /**
-     * Core method to send email via SendGrid
-     */
-    private void sendEmail(String toEmail, String subject, String htmlContent) throws IOException {
-        logger.info("🔧 Starting email send process...");
-        logger.info("📧 To: {}", toEmail);
-        logger.info("📝 Subject: {}", subject);
-
-        // Check if SendGrid is properly configured
-        if (sendGridApiKey == null || sendGridApiKey.isEmpty()) {
-            logger.error("❌ SendGrid API key is null or empty!");
-            throw new IllegalStateException("SendGrid API key is not configured");
-        }
-
-        if (sendGridApiKey.equals("your_sendgrid_api_key_here")) {
-            logger.error("❌ SendGrid API key is still the placeholder value!");
-            throw new IllegalStateException("SendGrid API key not properly configured - still using placeholder");
-        }
-
-        logger.info("🔑 API Key configured: {}", sendGridApiKey != null && !sendGridApiKey.isEmpty());
-
-        Email from = new Email(fromEmail, fromName);
-        Email to = new Email(toEmail);
-        Content content = new Content("text/html", htmlContent);
-        Mail mail = new Mail(from, subject, to, content);
-
-        SendGrid sg = new SendGrid(sendGridApiKey);
-        Request request = new Request();
-
+    private boolean sendEmail(User user, String emailType) {
         try {
+            validateConfiguration();
+
+            String subject = emailType.equals("APPROVED")
+                    ? "Account Approved - Welcome to AutoCare Platform"
+                    : "Account Registration Update - AutoCare Platform";
+
+            String htmlContent = emailType.equals("APPROVED")
+                    ? buildApprovalEmailContent(user)
+                    : buildRejectionEmailContent(user);
+
+            return sendEmailInternal(user.getUsername(), subject, htmlContent);
+
+        } catch (Exception e) {
+            logger.error("❌ Failed to send {} email to {}: {}", emailType, user.getUsername(), e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean sendEmailInternal(String toEmail, String subject, String htmlContent) {
+        try {
+            logger.info("🔧 Starting email send process to: {}", toEmail);
+
+            // Validate recipient
+            if (toEmail == null || toEmail.trim().isEmpty() || !toEmail.contains("@")) {
+                logger.error("❌ Invalid recipient email: {}", toEmail);
+                return false;
+            }
+
+            // Create email objects
+            Email from = new Email(fromEmail, fromName);
+            Email to = new Email(toEmail);
+            Content content = new Content("text/html", htmlContent);
+            Mail mail = new Mail(from, subject, to, content);
+
+            // Configure SendGrid
+            SendGrid sg = new SendGrid(sendGridApiKey);
+            Request request = new Request();
+
             request.setMethod(Method.POST);
             request.setEndpoint("mail/send");
             request.setBody(mail.build());
 
-            logger.info("🚀 Sending request to SendGrid API...");
-
+            logger.info("🚀 Sending email via SendGrid...");
             Response response = sg.api(request);
 
-            logger.info("📨 SendGrid Response - Status: {}, Body: {}",
-                    response.getStatusCode(), response.getBody());
+            int statusCode = response.getStatusCode();
+            logger.info("📨 SendGrid Response - Status: {}, Body: {}", statusCode, response.getBody());
 
-            if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
-                logger.info("✅ Email sent successfully. Status: {}", response.getStatusCode());
+            if (statusCode >= 200 && statusCode < 300) {
+                logger.info("✅ Email sent successfully!");
+                return true;
             } else {
-                logger.error("❌ SendGrid returned error. Status: {}, Body: {}",
-                        response.getStatusCode(), response.getBody());
-                throw new IOException("SendGrid API error: " + response.getStatusCode() + " - " + response.getBody());
+                logger.error("❌ SendGrid API error - Status: {}, Response: {}", statusCode, response.getBody());
+                return false;
             }
+
         } catch (IOException e) {
-            logger.error("❌ Failed to send email via SendGrid: {}", e.getMessage(), e);
-            throw e;
+            logger.error("❌ IOException sending email: {}", e.getMessage());
+            return false;
         } catch (Exception e) {
-            logger.error("❌ Unexpected error sending email: {}", e.getMessage(), e);
-            throw new IOException("Unexpected error: " + e.getMessage(), e);
+            logger.error("❌ Unexpected error sending email: {}", e.getMessage());
+            return false;
         }
     }
 
-    /**
-     * Build HTML content for approval email
-     */
+    private void validateConfiguration() throws IOException {
+        logger.info("🔍 Validating email configuration...");
+
+        if (sendGridApiKey == null || sendGridApiKey.trim().isEmpty()) {
+            throw new IOException("SendGrid API key is not configured");
+        }
+
+        if (sendGridApiKey.equals("your_sendgrid_api_key_here")) {
+            throw new IOException("SendGrid API key is still using placeholder value");
+        }
+
+        if (!sendGridApiKey.startsWith("SG.")) {
+            throw new IOException("Invalid SendGrid API key format");
+        }
+
+        if (fromEmail == null || fromEmail.trim().isEmpty()) {
+            throw new IOException("From email is not configured");
+        }
+
+        logger.info("✅ Email configuration validated successfully");
+    }
+
     private String buildApprovalEmailContent(User user) {
-        return """
+        String firstName = user.getFname() != null ? user.getFname() : "User";
+        String company = user.getcName() != null ? user.getcName() : "N/A";
+
+        return String.format("""
             <!DOCTYPE html>
             <html>
             <head>
+                <meta charset="UTF-8">
                 <style>
                     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
                     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                             color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-                    .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; }
-                    .button { display: inline-block; padding: 12px 30px; background: #10b981; 
-                             color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                    .header { background: #4CAF50; color: white; padding: 20px; text-align: center; }
+                    .content { padding: 20px; background: #f9f9f9; }
                     .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-                    .success-icon { font-size: 48px; margin: 20px 0; }
                 </style>
             </head>
             <body>
                 <div class="container">
                     <div class="header">
-                        <h1>🎉 Account Approved!</h1>
+                        <h1>Account Approved!</h1>
                     </div>
                     <div class="content">
-                        <p>Dear %s %s,</p>
-                        
-                        <p>Great news! Your registration on AutoCare Platform has been <strong>approved</strong>.</p>
-                        
-                        <p>You can now access all features of our platform including:</p>
-                        <ul>
-                            <li>Post and manage vehicle advertisements</li>
-                            <li>Connect with insurance and leasing companies</li>
-                            <li>Access our comprehensive vehicle database</li>
-                            <li>Submit and read vehicle reviews</li>
-                        </ul>
-                        
-                        <div style="text-align: center;">
-                            <a href="http://localhost:3000/signin" class="button">Login to Your Account</a>
-                        </div>
-                        
-                        <p><strong>Your Account Details:</strong></p>
-                        <ul>
-                            <li>Email: %s</li>
-                            <li>Company: %s</li>
-                            <li>Status: Approved ✅</li>
-                        </ul>
-                        
-                        <p>If you have any questions, feel free to contact our support team.</p>
-                        
-                        <p>Best regards,<br>
-                        <strong>AutoCare Platform Team</strong></p>
+                        <p>Dear %s,</p>
+                        <p>Your account has been <strong>approved</strong> and is now active on AutoCare Platform.</p>
+                        <p><strong>Company:</strong> %s</p>
+                        <p>You can now login and start using all features of our platform.</p>
+                        <p><a href="http://localhost:3000/signin" style="color: #4CAF50;">Click here to login</a></p>
                     </div>
                     <div class="footer">
-                        <p>This is an automated message. Please do not reply to this email.</p>
-                        <p>&copy; 2025 AutoCare Platform. All rights reserved.</p>
+                        <p>AutoCare Platform Team</p>
                     </div>
                 </div>
             </body>
             </html>
-            """.formatted(
-                user.getFname() != null ? user.getFname() : "",
-                user.getLname() != null ? user.getLname() : "",
-                user.getUsername() != null ? user.getUsername() : "",
-                user.getcName() != null ? user.getcName() : "N/A"
-        );
+            """, firstName, company);
     }
 
-    /**
-     * Build HTML content for rejection email
-     */
     private String buildRejectionEmailContent(User user) {
+        String firstName = user.getFname() != null ? user.getFname() : "User";
         String reason = user.getRejectionReason() != null ?
-                user.getRejectionReason() :
-                "Your registration did not meet our current requirements.";
+                user.getRejectionReason() : "Your registration did not meet our requirements.";
 
-        return """
+        return String.format("""
             <!DOCTYPE html>
             <html>
             <head>
+                <meta charset="UTF-8">
                 <style>
                     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
                     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                    .header { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); 
-                             color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-                    .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; }
-                    .button { display: inline-block; padding: 12px 30px; background: #3b82f6; 
-                             color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                    .header { background: #f44336; color: white; padding: 20px; text-align: center; }
+                    .content { padding: 20px; background: #f9f9f9; }
+                    .reason { background: #ffebee; padding: 15px; margin: 15px 0; border-left: 4px solid #f44336; }
                     .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-                    .reason-box { background: #fef2f2; border-left: 4px solid #ef4444; 
-                                 padding: 15px; margin: 20px 0; border-radius: 4px; }
                 </style>
             </head>
             <body>
@@ -209,47 +188,20 @@ public class EmailService {
                         <h1>Registration Status Update</h1>
                     </div>
                     <div class="content">
-                        <p>Dear %s %s,</p>
-                        
-                        <p>Thank you for your interest in AutoCare Platform.</p>
-                        
-                        <p>After careful review, we regret to inform you that we are unable to approve 
-                           your registration at this time.</p>
-                        
-                        <div class="reason-box">
+                        <p>Dear %s,</p>
+                        <p>After reviewing your registration, we are unable to approve your account at this time.</p>
+                        <div class="reason">
                             <strong>Reason:</strong><br>
                             %s
                         </div>
-                        
-                        <p><strong>What you can do:</strong></p>
-                        <ul>
-                            <li>Review our registration requirements</li>
-                            <li>Ensure all information provided is accurate and complete</li>
-                            <li>Contact our support team for clarification</li>
-                            <li>Re-apply with updated information</li>
-                        </ul>
-                        
-                        <div style="text-align: center;">
-                            <a href="http://localhost:3000/signup" class="button">Register Again</a>
-                        </div>
-                        
-                        <p>If you believe this decision was made in error or have questions, 
-                           please contact our support team at support@autocare.com</p>
-                        
-                        <p>Best regards,<br>
-                        <strong>AutoCare Platform Team</strong></p>
+                        <p>If you have questions, please contact our support team.</p>
                     </div>
                     <div class="footer">
-                        <p>This is an automated message. Please do not reply to this email.</p>
-                        <p>&copy; 2025 AutoCare Platform. All rights reserved.</p>
+                        <p>AutoCare Platform Team</p>
                     </div>
                 </div>
             </body>
             </html>
-            """.formatted(
-                user.getFname() != null ? user.getFname() : "",
-                user.getLname() != null ? user.getLname() : "",
-                reason
-        );
+            """, firstName, reason);
     }
 }
