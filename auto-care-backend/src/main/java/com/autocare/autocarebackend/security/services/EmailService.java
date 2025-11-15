@@ -1,7 +1,10 @@
 package com.autocare.autocarebackend.security.services;
 
 import com.autocare.autocarebackend.models.User;
-import com.sendgrid.*;
+import com.sendgrid.Method;
+import com.sendgrid.Request;
+import com.sendgrid.Response;
+import com.sendgrid.SendGrid;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
@@ -16,6 +19,8 @@ import java.io.IOException;
 public class EmailService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
+    private static final String APPROVED = "APPROVED";
+    private static final String REJECTED = "REJECTED";
 
     @Value("${sendgrid.api.key}")
     private String sendGridApiKey;
@@ -26,27 +31,24 @@ public class EmailService {
     @Value("${sendgrid.from.name:AutoCare Platform}")
     private String fromName;
 
+    // Public API methods
     public boolean sendApprovalEmail(User user) {
         logger.info("📧 Attempting to send approval email to: {}", user.getUsername());
-        return sendEmail(user, "APPROVED");
+        return sendEmail(user, APPROVED);
     }
 
     public boolean sendRejectionEmail(User user) {
         logger.info("📧 Attempting to send rejection email to: {}", user.getUsername());
-        return sendEmail(user, "REJECTED");
+        return sendEmail(user, REJECTED);
     }
 
+    // Core email sending logic
     private boolean sendEmail(User user, String emailType) {
         try {
             validateConfiguration();
 
-            String subject = emailType.equals("APPROVED")
-                    ? "Account Approved - Welcome to AutoCare Platform"
-                    : "Account Registration Update - AutoCare Platform";
-
-            String htmlContent = emailType.equals("APPROVED")
-                    ? buildApprovalEmailContent(user)
-                    : buildRejectionEmailContent(user);
+            String subject = buildSubject(emailType);
+            String htmlContent = buildEmailContent(user, emailType);
 
             return sendEmailInternal(user.getUsername(), subject, htmlContent);
 
@@ -60,39 +62,15 @@ public class EmailService {
         try {
             logger.info("🔧 Starting email send process to: {}", toEmail);
 
-            // Validate recipient
-            if (toEmail == null || toEmail.trim().isEmpty() || !toEmail.contains("@")) {
+            if (!isValidEmail(toEmail)) {
                 logger.error("❌ Invalid recipient email: {}", toEmail);
                 return false;
             }
 
-            // Create email objects
-            Email from = new Email(fromEmail, fromName);
-            Email to = new Email(toEmail);
-            Content content = new Content("text/html", htmlContent);
-            Mail mail = new Mail(from, subject, to, content);
+            Mail mail = buildMail(toEmail, subject, htmlContent);
+            Response response = sendViaSendGrid(mail);
 
-            // Configure SendGrid
-            SendGrid sg = new SendGrid(sendGridApiKey);
-            Request request = new Request();
-
-            request.setMethod(Method.POST);
-            request.setEndpoint("mail/send");
-            request.setBody(mail.build());
-
-            logger.info("🚀 Sending email via SendGrid...");
-            Response response = sg.api(request);
-
-            int statusCode = response.getStatusCode();
-            logger.info("📨 SendGrid Response - Status: {}, Body: {}", statusCode, response.getBody());
-
-            if (statusCode >= 200 && statusCode < 300) {
-                logger.info("✅ Email sent successfully!");
-                return true;
-            } else {
-                logger.error("❌ SendGrid API error - Status: {}, Response: {}", statusCode, response.getBody());
-                return false;
-            }
+            return handleResponse(response);
 
         } catch (IOException e) {
             logger.error("❌ IOException sending email: {}", e.getMessage());
@@ -103,6 +81,53 @@ public class EmailService {
         }
     }
 
+    // Email construction helpers
+    private Mail buildMail(String toEmail, String subject, String htmlContent) {
+        Email from = new Email(fromEmail, fromName);
+        Email to = new Email(toEmail);
+        Content content = new Content("text/html", htmlContent);
+        return new Mail(from, subject, to, content);
+    }
+
+    private String buildSubject(String emailType) {
+        return emailType.equals(APPROVED)
+                ? "Account Approved - Welcome to AutoCare Platform"
+                : "Account Registration Update - AutoCare Platform";
+    }
+
+    private String buildEmailContent(User user, String emailType) {
+        return emailType.equals(APPROVED)
+                ? buildApprovalEmailContent(user)
+                : buildRejectionEmailContent(user);
+    }
+
+    // SendGrid integration
+    private Response sendViaSendGrid(Mail mail) throws IOException {
+        SendGrid sg = new SendGrid(sendGridApiKey);
+        Request request = new Request();
+
+        request.setMethod(Method.POST);
+        request.setEndpoint("mail/send");
+        request.setBody(mail.build());
+
+        logger.info("🚀 Sending email via SendGrid...");
+        return sg.api(request);
+    }
+
+    private boolean handleResponse(Response response) {
+        int statusCode = response.getStatusCode();
+        logger.info("📨 SendGrid Response - Status: {}, Body: {}", statusCode, response.getBody());
+
+        if (statusCode >= 200 && statusCode < 300) {
+            logger.info("✅ Email sent successfully!");
+            return true;
+        } else {
+            logger.error("❌ SendGrid API error - Status: {}, Response: {}", statusCode, response.getBody());
+            return false;
+        }
+    }
+
+    // Validation methods
     private void validateConfiguration() throws IOException {
         logger.info("🔍 Validating email configuration...");
 
@@ -125,6 +150,11 @@ public class EmailService {
         logger.info("✅ Email configuration validated successfully");
     }
 
+    private boolean isValidEmail(String email) {
+        return email != null && !email.trim().isEmpty() && email.contains("@");
+    }
+
+    // Email template builders
     private String buildApprovalEmailContent(User user) {
         String firstName = user.getFname() != null ? user.getFname() : "User";
         String company = user.getcName() != null ? user.getcName() : "N/A";
