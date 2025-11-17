@@ -21,12 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -371,6 +366,245 @@ public class AdController {
             logger.error("❌ Error fetching manufacturers: {}", e.getMessage());
             return ResponseEntity.status(500)
                     .body(new MessageResponse("Error fetching manufacturers"));
+        }
+    }
+    /**
+     * Search and filter advertisements with intelligent matching
+     */
+    @GetMapping("/search")
+    public ResponseEntity<?> searchAdvertisements(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String manufacturer,
+            @RequestParam(required = false) String model,
+            @RequestParam(required = false) String vType,
+            @RequestParam(required = false) String transmission,
+            @RequestParam(required = false) String fuelType,
+            @RequestParam(required = false) String year,
+            @RequestParam(required = false) String minPrice,
+            @RequestParam(required = false) String maxPrice) {
+        try {
+            logger.info("🔍 Search request - Query: {}, Manufacturer: {}, Model: {}",
+                    query, manufacturer, model);
+
+            // Get all confirmed advertisements (flag = 1)
+            List<Advertisement> allAds = adRepository.getConfirmAd();
+
+            // Filter based on general search query
+            if (query != null && !query.trim().isEmpty()) {
+                String searchTerm = query.toLowerCase().trim();
+                allAds = allAds.stream()
+                        .filter(ad -> {
+                            // Search in multiple fields
+                            boolean matches = false;
+
+                            if (ad.getTitle() != null)
+                                matches |= ad.getTitle().toLowerCase().contains(searchTerm);
+
+                            if (ad.getManufacturer() != null)
+                                matches |= ad.getManufacturer().toLowerCase().contains(searchTerm);
+
+                            if (ad.getModel() != null)
+                                matches |= ad.getModel().toLowerCase().contains(searchTerm);
+
+                            if (ad.getDescription() != null)
+                                matches |= ad.getDescription().toLowerCase().contains(searchTerm);
+
+                            if (ad.getV_type() != null)
+                                matches |= ad.getV_type().toLowerCase().contains(searchTerm);
+
+                            return matches;
+                        })
+                        .collect(Collectors.toList());
+            }
+
+            // Filter by manufacturer
+            if (manufacturer != null && !manufacturer.trim().isEmpty()) {
+                String manufacturerLower = manufacturer.toLowerCase().trim();
+                allAds = allAds.stream()
+                        .filter(ad -> ad.getManufacturer() != null &&
+                                ad.getManufacturer().toLowerCase().contains(manufacturerLower))
+                        .collect(Collectors.toList());
+            }
+
+            // Filter by model
+            if (model != null && !model.trim().isEmpty()) {
+                String modelLower = model.toLowerCase().trim();
+                allAds = allAds.stream()
+                        .filter(ad -> ad.getModel() != null &&
+                                ad.getModel().toLowerCase().contains(modelLower))
+                        .collect(Collectors.toList());
+            }
+
+            // Filter by vehicle type
+            if (vType != null && !vType.trim().isEmpty()) {
+                String vTypeLower = vType.toLowerCase().trim();
+                allAds = allAds.stream()
+                        .filter(ad -> ad.getV_type() != null &&
+                                ad.getV_type().toLowerCase().contains(vTypeLower))
+                        .collect(Collectors.toList());
+            }
+
+            // Filter by transmission
+            if (transmission != null && !transmission.trim().isEmpty()) {
+                String transmissionLower = transmission.toLowerCase().trim();
+                allAds = allAds.stream()
+                        .filter(ad -> ad.getTransmission() != null &&
+                                ad.getTransmission().toLowerCase().contains(transmissionLower))
+                        .collect(Collectors.toList());
+            }
+
+            // Filter by fuel type
+            if (fuelType != null && !fuelType.trim().isEmpty()) {
+                String fuelTypeLower = fuelType.toLowerCase().trim();
+                allAds = allAds.stream()
+                        .filter(ad -> ad.getFuel_type() != null &&
+                                ad.getFuel_type().toLowerCase().contains(fuelTypeLower))
+                        .collect(Collectors.toList());
+            }
+
+            // Filter by year
+            if (year != null && !year.trim().isEmpty()) {
+                allAds = allAds.stream()
+                        .filter(ad -> ad.getM_year() != null &&
+                                ad.getM_year().equals(year))
+                        .collect(Collectors.toList());
+            }
+
+            // Filter by price range (parse string prices)
+            if (minPrice != null && !minPrice.trim().isEmpty()) {
+                try {
+                    double minPriceValue = Double.parseDouble(minPrice);
+                    allAds = allAds.stream()
+                            .filter(ad -> {
+                                if (ad.getPrice() == null) return false;
+                                try {
+                                    // Remove currency symbols and commas
+                                    String cleanPrice = ad.getPrice()
+                                            .replaceAll("[^0-9.]", "");
+                                    double adPrice = Double.parseDouble(cleanPrice);
+                                    return adPrice >= minPriceValue;
+                                } catch (NumberFormatException e) {
+                                    return false;
+                                }
+                            })
+                            .collect(Collectors.toList());
+                } catch (NumberFormatException e) {
+                    logger.warn("⚠️ Invalid minPrice format: {}", minPrice);
+                }
+            }
+
+            if (maxPrice != null && !maxPrice.trim().isEmpty()) {
+                try {
+                    double maxPriceValue = Double.parseDouble(maxPrice);
+                    allAds = allAds.stream()
+                            .filter(ad -> {
+                                if (ad.getPrice() == null) return false;
+                                try {
+                                    String cleanPrice = ad.getPrice()
+                                            .replaceAll("[^0-9.]", "");
+                                    double adPrice = Double.parseDouble(cleanPrice);
+                                    return adPrice <= maxPriceValue;
+                                } catch (NumberFormatException e) {
+                                    return false;
+                                }
+                            })
+                            .collect(Collectors.toList());
+                } catch (NumberFormatException e) {
+                    logger.warn("⚠️ Invalid maxPrice format: {}", maxPrice);
+                }
+            }
+
+            logger.info("✅ Search completed. Found {} vehicles matching criteria", allAds.size());
+            return ResponseEntity.ok(allAds);
+
+        } catch (Exception e) {
+            logger.error("❌ Error searching advertisements: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error searching advertisements: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get unique values for filters
+     */
+    @GetMapping("/filters/manufacturers")
+    public ResponseEntity<?> getUniqueManufacturers() {
+        try {
+            List<String> manufacturers = adRepository.getConfirmAd().stream()
+                    .map(Advertisement::getManufacturer)
+                    .filter(m -> m != null && !m.trim().isEmpty())
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.toList());
+
+            logger.info("✅ Found {} unique manufacturers", manufacturers.size());
+            return ResponseEntity.ok(manufacturers);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching manufacturers: {}", e.getMessage());
+            return ResponseEntity.status(500).body(new MessageResponse("Error fetching manufacturers"));
+        }
+    }
+
+    @GetMapping("/filters/models")
+    public ResponseEntity<?> getUniqueModels(@RequestParam(required = false) String manufacturer) {
+        try {
+            List<Advertisement> ads = adRepository.getConfirmAd();
+
+            // Filter by manufacturer if provided
+            if (manufacturer != null && !manufacturer.trim().isEmpty()) {
+                String manuLower = manufacturer.toLowerCase();
+                ads = ads.stream()
+                        .filter(ad -> ad.getManufacturer() != null &&
+                                ad.getManufacturer().toLowerCase().equals(manuLower))
+                        .collect(Collectors.toList());
+            }
+
+            List<String> models = ads.stream()
+                    .map(Advertisement::getModel)
+                    .filter(m -> m != null && !m.trim().isEmpty())
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.toList());
+
+            logger.info("✅ Found {} unique models", models.size());
+            return ResponseEntity.ok(models);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching models: {}", e.getMessage());
+            return ResponseEntity.status(500).body(new MessageResponse("Error fetching models"));
+        }
+    }
+
+    @GetMapping("/filters/vehicleTypes")
+    public ResponseEntity<?> getUniqueVehicleTypes() {
+        try {
+            List<String> types = adRepository.getConfirmAd().stream()
+                    .map(Advertisement::getV_type)
+                    .filter(t -> t != null && !t.trim().isEmpty())
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(types);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching vehicle types: {}", e.getMessage());
+            return ResponseEntity.status(500).body(new MessageResponse("Error fetching vehicle types"));
+        }
+    }
+
+    @GetMapping("/filters/years")
+    public ResponseEntity<?> getUniqueYears() {
+        try {
+            List<String> years = adRepository.getConfirmAd().stream()
+                    .map(Advertisement::getM_year)
+                    .filter(y -> y != null && !y.trim().isEmpty())
+                    .distinct()
+                    .sorted(Comparator.reverseOrder()) // Newest first
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(years);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching years: {}", e.getMessage());
+            return ResponseEntity.status(500).body(new MessageResponse("Error fetching years"));
         }
     }
 
