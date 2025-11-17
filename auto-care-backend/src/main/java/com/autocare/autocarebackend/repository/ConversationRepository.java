@@ -18,6 +18,10 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
 
     Optional<Conversation> findByUserIdAndCompanyName(Long userId, String companyName);
 
+    List<Conversation> findByCompanyNameOrderByUpdatedAtDesc(String companyName);
+
+    List<Conversation> findByCompanyName(String companyName);
+
     @Modifying
     @Transactional
     @Query("UPDATE Conversation c SET c.updatedAt = CURRENT_TIMESTAMP WHERE c.id = ?1")

@@ -2,13 +2,16 @@ package com.autocare.autocarebackend.security;
 
 import com.autocare.autocarebackend.security.jwt.AuthEntryPointJwt;
 import com.autocare.autocarebackend.security.jwt.AuthTokenFilter;
-import com.autocare.autocarebackend.security.services.UserDetailsServicelmpl;
+import com.autocare.autocarebackend.security.services.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+// --- THIS IS THE FIX ---
+// We replace the deprecated 'EnableGlobalMethodSecurity' with 'EnableMethodSecurity'
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+// --- END OF FIX ---
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -22,13 +25,16 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
+import org.springframework.core.annotation.Order;
+
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(
-        prePostEnabled = true)
+// --- THIS IS THE FIX ---
+// Replaced @EnableGlobalMethodSecurity(prePostEnabled = true) with the new annotation
+@EnableMethodSecurity
 public class WebSecurityConfig {
     @Autowired
-    UserDetailsServicelmpl userDetailsService;
+    UserDetailsServiceImpl userDetailsService;
 
     @Autowired
     private AuthEntryPointJwt unauthorizedHandler;
@@ -60,19 +66,47 @@ public class WebSecurityConfig {
     }
 
     @Bean
+    @Order(1)
+    public SecurityFilterChain bannerAdsFilterChain(HttpSecurity http) throws Exception {
+        http
+            .securityMatcher("/api/banner-ads/**")
+            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+            .csrf(csrf -> csrf.disable());
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
+    public SecurityFilterChain authFilterChain(HttpSecurity http) throws Exception {
+        http
+            .securityMatcher("/api/auth/**")
+            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+            .csrf(csrf -> csrf.disable());
+        return http.build();
+    }
+
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
         http
+                .securityMatcher("/**")
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/v1/leasing-companies/**").permitAll()
+                        .requestMatchers("/api/v1/insurance-companies/**").permitAll()
+                        //.requestMatchers("/api/leasing-plans").permitAll()
+                        .requestMatchers("/api/leasing-plans/public/all").permitAll()
+                        .requestMatchers("/api/advertisement/getconfrimad").permitAll()
                         .requestMatchers("/api/test/**").permitAll()
+                        .requestMatchers("/api/autogenie/**").permitAll()
                         .requestMatchers("/advertisement/**").permitAll()
                         .requestMatchers("/admin/getallagents").permitAll()
                         .requestMatchers("/user/getlplan/**").permitAll()
                         .requestMatchers("/user/getiplan/**").permitAll()
+                        .requestMatchers("/api/icompany/**").authenticated()
+                        .requestMatchers("/api/lcompany/**").authenticated()
                         .anyRequest().authenticated()
                 );
 
