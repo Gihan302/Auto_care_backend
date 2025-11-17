@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("/advertisement")
+@RequestMapping("/api/advertisement")
 public class AdController {
 
     private static final Logger logger = LoggerFactory.getLogger(AdController.class);

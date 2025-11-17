@@ -53,34 +53,39 @@ public class AuthController {
 
     @PostMapping("/signin")
     public ResponseEntity<?>authenticateUser(@Valid @RequestBody LoginRequest loginRequest){
-        logger.info("Request /signin");
+        try {
+            logger.info("Request /signin");
 
-        logger.info("Username: "+loginRequest.getUsername()+"\t Password: "+loginRequest.getPassword());
+            logger.info("Username: "+loginRequest.getUsername()+"\t Password: "+loginRequest.getPassword());
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(),loginRequest.getPassword()));
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(),loginRequest.getPassword()));
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateJwtToken(authentication);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String jwt = jwtUtils.generateJwtToken(authentication);
 
-        UserDetailsImpl userDetails = (UserDetailsImpl)authentication.getPrincipal();
-        List<String> roles = userDetails.getAuthorities().stream()
-                .map(item->item.getAuthority())
-                .collect(Collectors.toList());
+            UserDetailsImpl userDetails = (UserDetailsImpl)authentication.getPrincipal();
+            List<String> roles = userDetails.getAuthorities().stream()
+                    .map(item->item.getAuthority())
+                    .collect(Collectors.toList());
 
-        return ResponseEntity.ok(new JwtResponse(jwt,
-                userDetails.getId(),
-                userDetails.getFname(),
-                userDetails.getLname(),
-                userDetails.getTnumber(),
-                userDetails.getUsername(),
-                userDetails.getNic(),
-                userDetails.getDate(),
-                userDetails.getcName(),
-                userDetails.getAddress(),
-                userDetails.getRegNum(),
-                roles,
-                userDetails.getImgId()));
+            return ResponseEntity.ok(new JwtResponse(jwt,
+                    userDetails.getId(),
+                    userDetails.getFname(),
+                    userDetails.getLname(),
+                    userDetails.getTnumber(),
+                    userDetails.getUsername(),
+                    userDetails.getNic(),
+                    userDetails.getDate(),
+                    userDetails.getcName(),
+                    userDetails.getAddress(),
+                    userDetails.getRegNum(),
+                    roles,
+                    userDetails.getImgId()));
+        } catch (Exception e) {
+            logger.error("Error in authenticateUser: ", e);
+            return ResponseEntity.internalServerError().body(new MessageResponse("Error in authenticateUser"));
+        }
     }
 
     @CrossOrigin(origins = "http://localhost:4200")

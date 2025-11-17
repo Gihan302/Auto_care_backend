@@ -18,10 +18,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional; // Import Optional
+import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("/lcompany")
+@RequestMapping("/api/lcompany")
 public class LCompanyController {
 
     @Autowired
@@ -166,5 +167,17 @@ public class LCompanyController {
         User user = userRepository.findById(userDetails.getId()).get();
         // This query finds all LPlan entities associated with the logged-in user (LCompany)
         return lPlanRepository.findByUser(user);
+    }
+
+    @GetMapping("/users")
+    @PreAuthorize("hasRole('ROLE_LCOMPANY')")
+    public List<User> getUsers(Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User companyUser = userRepository.findById(userDetails.getId()).get();
+        List<LPlan> plans = lPlanRepository.findByUser(companyUser);
+        return plans.stream()
+                .map(plan -> plan.getAdvertisement().getUser())
+                .distinct()
+                .collect(Collectors.toList());
     }
 }

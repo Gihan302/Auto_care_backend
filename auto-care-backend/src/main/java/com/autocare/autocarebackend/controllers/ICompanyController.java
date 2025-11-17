@@ -1,14 +1,13 @@
 package com.autocare.autocarebackend.controllers;
 
 import com.autocare.autocarebackend.models.Advertisement;
-import com.autocare.autocarebackend.models.IPlan;
+import com.autocare.autocarebackend.models.InsurancePlan;
 import com.autocare.autocarebackend.models.User;
-import com.autocare.autocarebackend.payload.request.IPlanRequest;
+import com.autocare.autocarebackend.payload.request.InsurancePlanRequest;
 import com.autocare.autocarebackend.payload.response.MessageResponse;
 import com.autocare.autocarebackend.repository.AdRepository;
-import com.autocare.autocarebackend.repository.IPlanRepository;
+import com.autocare.autocarebackend.repository.InsurancePlanRepository;
 import com.autocare.autocarebackend.repository.UserRepository;
-import com.autocare.autocarebackend.security.services.IPlanDetailsImpl;
 import com.autocare.autocarebackend.security.services.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,48 +19,43 @@ import java.util.List;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("/icompany")
-
+@RequestMapping("/api/icompany")
 public class ICompanyController {
 
     @Autowired
-    UserRepository userRepository;
+    private InsurancePlanRepository iPlanRepository;
 
     @Autowired
-    IPlanRepository iPlanRepository;
+    private UserRepository userRepository;
 
     @Autowired
-    IPlanDetailsImpl iPlanDetails;
+    private AdRepository adRepository;
 
-    @Autowired
-    AdRepository adRepository;
-
-
-
-    @PostMapping("/postiplan")
+    @PostMapping("/postplan")
     @PreAuthorize("hasRole('ROLE_ICOMPANY')")
+    public ResponseEntity<?> iPlanPost(@RequestBody InsurancePlanRequest iPlanRequest, Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User user = userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new RuntimeException("Error: User not found."));
 
-    public ResponseEntity<?> iPlanPost(@RequestBody IPlanRequest iPlanRequest , Authentication authentication){
-        UserDetailsImpl userDetails=(UserDetailsImpl) authentication.getPrincipal();
+        InsurancePlan iPlan = new InsurancePlan(
+                iPlanRequest.getPlanName(),
+                iPlanRequest.getCoverage(),
+                iPlanRequest.getPrice(),
+                iPlanRequest.getDescription(),
+                user
+        );
+
+        iPlanRepository.save(iPlan);
+        return ResponseEntity.ok(new MessageResponse("Plan added successfully!"));
+    }
+
+    @GetMapping("/myplans")
+    @PreAuthorize("hasRole('ROLE_ICOMPANY')")
+    public List<InsurancePlan> getMyPlans(Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User user = userRepository.findById(userDetails.getId()).get();
-        Advertisement advertisement = adRepository.findById(iPlanRequest.getAdId()).get();
-        if(adRepository.existsById(iPlanRequest.getAdId())){
-            IPlan iPlan = new IPlan(
-                    iPlanRequest.getPlanAmt(),
-                    iPlanRequest.getNoOfInstallments(),
-                    iPlanRequest.getInterest(),
-                    iPlanRequest.getInstAmt(),
-                    iPlanRequest.getDescription(),
-                    user,
-                    advertisement
-            );
-            iPlanDetails.saveIPlanDetails(iPlan);
-            return ResponseEntity.ok(new MessageResponse("Plan Add sucessfully!"));
-        }else {
-            return ResponseEntity
-                    .badRequest()
-                    .body(new MessageResponse("Error: Invalid Advertisment Id!"));
-        }
+        return iPlanRepository.findByUser(user);
     }
 
     @GetMapping("/getadconfrim")
@@ -77,7 +71,6 @@ public class ICompanyController {
     public List<Advertisement> getPending(Authentication authentication){
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User user = userRepository.findById(userDetails.getId()).get();
-        System.out.println(user.getId());
         return adRepository.getIPendingAd(user.getId());
     }
 }

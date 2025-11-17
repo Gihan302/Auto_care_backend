@@ -3,6 +3,7 @@ package com.autocare.autocarebackend;
 import com.autocare.autocarebackend.models.ERole;
 import com.autocare.autocarebackend.models.Role;
 import com.autocare.autocarebackend.repository.RoleRepository;
+import com.autocare.autocarebackend.security.services.DataMigrationService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -48,6 +49,13 @@ public class AutoCareBackendApplication {
             if (roleRepository.findByName(ERole.ROLE_LCOMPANY).isEmpty()) {
                 roleRepository.save(new Role(ERole.ROLE_LCOMPANY));
             }
+        };
+    }
+
+    @Bean
+    public CommandLineRunner dataMigration(DataMigrationService dataMigrationService) {
+        return args -> {
+            dataMigrationService.migrateLPlansToLeasingPlans();
         };
     }
 

@@ -1,20 +1,19 @@
 package com.autocare.autocarebackend.repository;
 
 import com.autocare.autocarebackend.models.IPlan;
+import com.autocare.autocarebackend.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
-public interface IPlanRepository extends JpaRepository<IPlan,Long> {
-    @Override
-    Optional<IPlan> findById(Long aLong);
+public interface IPlanRepository extends JpaRepository<IPlan, Long> {
 
-    @Override
-    List<IPlan> findAll();
+    // This method allows us to find all plans created by a specific user
+    List<IPlan> findByUser(User user);
 
-    List<IPlan> findAllByAdvertisement_Id(Long adId);
-
+    // --- ADD THIS METHOD ---
+    // Finds all IPlans linked to a specific Advertisement ID
+    List<IPlan> findAllByAdvertisement_Id(Long advertisementId);
 }
