@@ -10,12 +10,19 @@ import java.io.IOException;
 import java.util.Base64;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
 @Service
 public class ImageUploadService {
 
     private static final Logger logger = LoggerFactory.getLogger(ImageUploadService.class);
-    private final Cloudinary cloudinary;
+    private Cloudinary cloudinary;
 
+    public ImageUploadService() {
+        this.cloudinary = null;
+    }
+
+    @Autowired(required = false)
     public ImageUploadService(Cloudinary cloudinary) {
         this.cloudinary = cloudinary;
     }
@@ -25,6 +32,11 @@ public class ImageUploadService {
      * Returns the secure_url from Cloudinary.
      */
     public String uploadBase64(String base64Data) throws IOException {
+        if (cloudinary == null) {
+            logger.warn("⚠️ Cloudinary is not configured. Image upload is disabled.");
+            return "https://res.cloudinary.com/demo/image/upload/v1629978997/placeholder.jpg";
+        }
+
         if (base64Data == null || base64Data.isBlank()) {
             logger.warn("⚠️ Base64 data is null or empty");
             return null;
