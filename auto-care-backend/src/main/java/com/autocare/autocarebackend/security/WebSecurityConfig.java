@@ -25,6 +25,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
+import org.springframework.core.annotation.Order;
+
 @Configuration
 @EnableWebSecurity
 // --- THIS IS THE FIX ---
@@ -64,26 +66,47 @@ public class WebSecurityConfig {
     }
 
     @Bean
+    @Order(1)
+    public SecurityFilterChain bannerAdsFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/api/banner-ads/**")
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .csrf(csrf -> csrf.disable());
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
+    public SecurityFilterChain authFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/api/auth/**")
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .csrf(csrf -> csrf.disable());
+        return http.build();
+    }
+
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
         http
+                .securityMatcher("/**")
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/v1/leasing-companies/**").permitAll()
+                        .requestMatchers("/api/v1/insurance-companies/**").permitAll()
+                        //.requestMatchers("/api/leasing-plans").permitAll()
+                        .requestMatchers("/api/leasing-plans/public/all").permitAll()
+                        .requestMatchers("/api/advertisement/getconfrimad").permitAll()
                         .requestMatchers("/api/test/**").permitAll()
+                        .requestMatchers("/api/autogenie/**").permitAll()
                         .requestMatchers("/advertisement/**").permitAll()
                         .requestMatchers("/admin/getallagents").permitAll()
                         .requestMatchers("/user/getlplan/**").permitAll()
                         .requestMatchers("/user/getiplan/**").permitAll()
-<<<<<<< Updated upstream
-                        .requestMatchers("/api/banner-ads/**").permitAll()
-                        .requestMatchers("/lcompany/**").authenticated()
-=======
-                        .requestMatchers("/user/currentuser").authenticated()
-                        .requestMatchers("/leasing-plans/**").authenticated()
->>>>>>> Stashed changes
+                        .requestMatchers("/api/icompany/**").authenticated()
+                        .requestMatchers("/api/lcompany/**").authenticated()
                         .anyRequest().authenticated()
                 );
 
