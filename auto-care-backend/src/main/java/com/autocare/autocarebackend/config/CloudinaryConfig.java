@@ -4,6 +4,7 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -22,27 +23,28 @@ public class CloudinaryConfig {
         this.cloudinaryProperties = cloudinaryProperties;
     }
 
-    @PostConstruct
-    public void validateCredentials() {
-        logger.info("🔍 VALIDATING CLOUDINARY CREDENTIALS:");
-        logger.info(" Cloud Name: '{}'", cloudinaryProperties.getCloudName());
-        logger.info(" API Key: '{}'", cloudinaryProperties.getApiKey());
-        logger.info(" API Secret: '{}...{}'",
-                cloudinaryProperties.getApiSecret().substring(0, 4),
-                cloudinaryProperties.getApiSecret().substring(cloudinaryProperties.getApiSecret().length() - 4));
-
-        if ("your_cloud_name_here".equals(cloudinaryProperties.getCloudName())) {
-            logger.error("❌ PLEASE UPDATE YOUR CLOUD NAME IN application.properties!");
-        }
-        if ("your_api_key_here".equals(cloudinaryProperties.getApiKey())) {
-            logger.error("❌ PLEASE UPDATE YOUR API KEY IN application.properties!");
-        }
-        if ("your_api_secret_here".equals(cloudinaryProperties.getApiSecret())) {
-            logger.error("❌ PLEASE UPDATE YOUR API SECRET IN application.properties!");
-        }
-    }
+//    @PostConstruct
+//    public void validateCredentials() {
+//        logger.info("🔍 VALIDATING CLOUDINARY CREDENTIALS:");
+//        logger.info(" Cloud Name: '{}'", cloudinaryProperties.getCloudName());
+//        logger.info(" API Key: '{}'", cloudinaryProperties.getApiKey());
+//        logger.info(" API Secret: '{}...{}'",
+//                cloudinaryProperties.getApiSecret().substring(0, 4),
+//                cloudinaryProperties.getApiSecret().substring(cloudinaryProperties.getApiSecret().length() - 4));
+//
+//        if ("your_cloud_name_here".equals(cloudinaryProperties.getCloudName())) {
+//            logger.error("❌ PLEASE UPDATE YOUR CLOUD NAME IN application.properties!");
+//        }
+//        if ("your_api_key_here".equals(cloudinaryProperties.getApiKey())) {
+//            logger.error("❌ PLEASE UPDATE YOUR API KEY IN application.properties!");
+//        }
+//        if ("your_api_secret_here".equals(cloudinaryProperties.getApiSecret())) {
+//            logger.error("❌ PLEASE UPDATE YOUR API SECRET IN application.properties!");
+//        }
+//    }
 
     @Bean
+    @ConditionalOnProperty(name = "cloudinary.cloud-name")
     public Cloudinary cloudinary() {
         logger.info("🔧 Creating Cloudinary bean...");
 

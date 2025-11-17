@@ -73,6 +73,8 @@ public class WebSecurityConfig {
                         .requestMatchers("/admin/getallagents").permitAll()
                         .requestMatchers("/user/getlplan/**").permitAll()
                         .requestMatchers("/user/getiplan/**").permitAll()
+                        .requestMatchers("/user/currentuser").authenticated()
+                        .requestMatchers("/leasing-plans/**").authenticated()
                         .anyRequest().authenticated()
                 );
 
