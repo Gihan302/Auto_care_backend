@@ -77,8 +77,13 @@ public class WebSecurityConfig {
                         .requestMatchers("/admin/getallagents").permitAll()
                         .requestMatchers("/user/getlplan/**").permitAll()
                         .requestMatchers("/user/getiplan/**").permitAll()
+<<<<<<< Updated upstream
                         .requestMatchers("/api/banner-ads/**").permitAll()
                         .requestMatchers("/lcompany/**").authenticated()
+=======
+                        .requestMatchers("/user/currentuser").authenticated()
+                        .requestMatchers("/leasing-plans/**").authenticated()
+>>>>>>> Stashed changes
                         .anyRequest().authenticated()
                 );
 
