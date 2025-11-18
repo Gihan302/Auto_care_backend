@@ -2,12 +2,14 @@ package com.autocare.autocarebackend.controllers;
 
 import com.autocare.autocarebackend.models.Conversation;
 import com.autocare.autocarebackend.models.Message;
+import com.autocare.autocarebackend.models.User; // ✅ ADDED IMPORT
 import com.autocare.autocarebackend.payload.request.CompanyConversationRequest;
 import com.autocare.autocarebackend.payload.request.MessageRequest;
 import com.autocare.autocarebackend.payload.response.ConversationResponse;
 import com.autocare.autocarebackend.payload.response.MessageResponse;
 import com.autocare.autocarebackend.repository.ConversationRepository;
 import com.autocare.autocarebackend.repository.MessageRepository;
+import com.autocare.autocarebackend.repository.UserRepository; // ✅ THIS WAS HERE, BUT UNUSED
 import com.autocare.autocarebackend.security.services.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,6 +37,10 @@ public class CompanyMessageController {
 
     @Autowired
     private MessageRepository messageRepository;
+
+    // ✅ ADDED: Inject the User Repository
+    @Autowired
+    private UserRepository userRepository;
 
     @Value("${upload.location}")
     private String fileLocation;
@@ -271,5 +277,46 @@ public class CompanyMessageController {
         messageRepository.markMessagesAsRead(conversationId, "user");
 
         return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    // ✅ ADDED: This is the missing method that was causing the 401 error
+    /**
+     * Get details of the user involved in a specific conversation
+     */
+    /**
+     * Get details of the user involved in a specific conversation
+     */
+    @GetMapping("/conversations/{conversationId}/user-details")
+    @PreAuthorize("hasRole('ROLE_ICOMPANY') or hasRole('ROLE_LCOMPANY')")
+    public ResponseEntity<?> getUserDetails(@PathVariable Long conversationId, Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        String companyName = userDetails.getcName();
+
+        // 1. Verify company has access to this conversation
+        Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
+        if (conversationOpt.isEmpty() || !conversationOpt.get().getCompanyName().equals(companyName)) {
+            return ResponseEntity.status(403).body(new MessageResponse("Access denied"));
+        }
+
+        Conversation conversation = conversationOpt.get();
+
+        // 2. Get the User details
+        Optional<User> userOpt = userRepository.findById(conversation.getUserId());
+
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            // Return only necessary public info
+            return ResponseEntity.ok(Map.of(
+                    "id", user.getId(),
+                    // In your User model, 'username' is the email
+                    "email", user.getUsername(),
+                    // We can combine fname + lname for the display name
+                    "username", user.getFname() + " " + user.getLname(),
+                    // In your User model, 'tnumber' is the contact number
+                    "contact", user.getTnumber() != null ? user.getTnumber() : ""
+            ));
+        } else {
+            return ResponseEntity.status(404).body(new MessageResponse("User not found"));
+        }
     }
 }
