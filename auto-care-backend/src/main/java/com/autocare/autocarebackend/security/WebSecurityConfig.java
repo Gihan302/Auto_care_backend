@@ -96,7 +96,7 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/leasing-companies/**").permitAll()
                         .requestMatchers("/api/v1/insurance-companies/**").permitAll()
-                        //.requestMatchers("/api/leasing-plans").permitAll()
+                        .requestMatchers("/api/leasing-plans").permitAll()
                         .requestMatchers("/api/leasing-plans/public/all").permitAll()
                         .requestMatchers("/api/advertisement/getconfrimad").permitAll()
                         .requestMatchers("/api/test/**").permitAll()
@@ -105,8 +105,11 @@ public class WebSecurityConfig {
                         .requestMatchers("/admin/getallagents").permitAll()
                         .requestMatchers("/user/getlplan/**").permitAll()
                         .requestMatchers("/user/getiplan/**").permitAll()
+                        .requestMatchers("/api/messages/**").hasRole("USER")
                         .requestMatchers("/api/icompany/**").authenticated()
                         .requestMatchers("/api/lcompany/**").authenticated()
+                        .requestMatchers("/api/company/**").hasAnyRole("LCOMPANY", "ICOMPANY")
+
                         .anyRequest().authenticated()
                 );
 
