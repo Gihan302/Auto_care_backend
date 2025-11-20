@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 public class ConversationResponse {
     private Long id;
+    private String participantName; // New field
     private String companyName;
     private String companyType;
     private String status;
@@ -11,9 +12,10 @@ public class ConversationResponse {
     private LocalDateTime lastMessageTime;
     private Long unreadCount;
 
-    public ConversationResponse(Long id, String companyName, String companyType, String status,
+    public ConversationResponse(Long id, String participantName, String companyName, String companyType, String status,
                                 String lastMessage, LocalDateTime lastMessageTime, Long unreadCount) {
         this.id = id;
+        this.participantName = participantName; // Initialize new field
         this.companyName = companyName;
         this.companyType = companyType;
         this.status = status;
@@ -25,6 +27,10 @@ public class ConversationResponse {
     // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    // New getter and setter for participantName
+    public String getParticipantName() { return participantName; }
+    public void setParticipantName(String participantName) { this.participantName = participantName; }
 
     public String getCompanyName() { return companyName; }
     public void setCompanyName(String companyName) { this.companyName = companyName; }

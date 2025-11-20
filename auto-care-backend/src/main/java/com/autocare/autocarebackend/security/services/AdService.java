@@ -221,4 +221,56 @@ public class AdService {
                 })
                 .collect(Collectors.toList());
     }
+
+    public Advertisement updateAdvertisement(Long adId, AdRequest adRequest) throws IOException {
+        Advertisement advertisement = adRepository.findById(adId)
+                .orElseThrow(() -> new RuntimeException("Advertisement not found"));
+
+        // Update fields
+        advertisement.setName(adRequest.getName());
+        advertisement.setT_number(adRequest.getT_number());
+        advertisement.setEmail(adRequest.getEmail());
+        advertisement.setLocation(adRequest.getLocation());
+        advertisement.setTitle(adRequest.getTitle());
+        advertisement.setPrice(adRequest.getPrice());
+        advertisement.setV_type(adRequest.getV_type());
+        advertisement.setManufacturer(adRequest.getManufacturer());
+        advertisement.setModel(adRequest.getModel());
+        advertisement.setV_condition(adRequest.getV_condition());
+        advertisement.setM_year(adRequest.getM_year());
+        advertisement.setR_year(adRequest.getR_year());
+        advertisement.setMileage(adRequest.getMileage());
+        advertisement.setE_capacity(adRequest.getE_capacity());
+        advertisement.setTransmission(adRequest.getTransmission());
+        advertisement.setFuel_type(adRequest.getFuel_type());
+        advertisement.setColour(adRequest.getColour());
+        advertisement.setDescription(adRequest.getDescription());
+
+        // Handle images
+        String[] images = adRequest.getImages();
+        if (images != null && images.length > 0) {
+            String[] safeImages = new String[5];
+            for (int i = 0; i < Math.min(5, images.length); i++) {
+                safeImages[i] = images[i];
+            }
+
+            if (!isNullOrBlank(safeImages[0])) {
+                advertisement.setImage1(imageUploadService.uploadBase64(safeImages[0]));
+            }
+            if (!isNullOrBlank(safeImages[1])) {
+                advertisement.setImage2(imageUploadService.uploadBase64(safeImages[1]));
+            }
+            if (!isNullOrBlank(safeImages[2])) {
+                advertisement.setImage3(imageUploadService.uploadBase64(safeImages[2]));
+            }
+            if (!isNullOrBlank(safeImages[3])) {
+                advertisement.setImage4(imageUploadService.uploadBase64(safeImages[3]));
+            }
+            if (!isNullOrBlank(safeImages[4])) {
+                advertisement.setImage5(imageUploadService.uploadBase64(safeImages[4]));
+            }
+        }
+
+        return adRepository.save(advertisement);
+    }
 }

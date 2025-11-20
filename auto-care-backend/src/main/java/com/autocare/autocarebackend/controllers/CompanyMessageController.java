@@ -253,7 +253,7 @@ public class CompanyMessageController {
 
         Long count = 0L;
         if (!conversationIds.isEmpty()) {
-            count = messageRepository.countUnreadMessagesByConversationIds(conversationIds, "user");
+            count = messageRepository.countUnreadMessagesByConversationIdsAndSenderType(conversationIds, "user");
         }
 
         return ResponseEntity.ok(Map.of("count", count));

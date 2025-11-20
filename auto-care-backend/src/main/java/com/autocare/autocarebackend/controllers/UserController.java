@@ -1,7 +1,9 @@
 package com.autocare.autocarebackend.controllers;
 
+import com.autocare.autocarebackend.models.ERole;
 import com.autocare.autocarebackend.models.IPlan;
 import com.autocare.autocarebackend.models.LPlan;
+import com.autocare.autocarebackend.models.Role;
 import com.autocare.autocarebackend.models.User;
 import com.autocare.autocarebackend.models.Conversation;
 import com.autocare.autocarebackend.models.Message;
@@ -180,9 +182,25 @@ public class UserController {
                     conv.getId(), "company", false
             );
 
+            String participantName = null;
+            String companyName = null;
+
+            if ("agent".equals(conv.getCompanyType())) {
+                Optional<User> agent = userRepository.findById(conv.getAgentId());
+                if (agent.isPresent()) {
+                    participantName = agent.get().getFname() + " " + agent.get().getLname();
+                } else {
+                    participantName = "Unknown Agent"; // Fallback
+                }
+            } else {
+                companyName = conv.getCompanyName();
+            }
+
+
             return new ConversationResponse(
                     conv.getId(),
-                    conv.getCompanyName(),
+                    participantName,
+                    companyName,
                     conv.getCompanyType(),
                     conv.getStatus(),
                     lastMessage != null ? lastMessage.getMessageText() : "",
@@ -205,32 +223,51 @@ public class UserController {
     public ResponseEntity<?> createConversation(@RequestBody ConversationRequest request, Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-        // Check if conversation already exists
-        Optional<Conversation> existing = conversationRepository.findByUserIdAndCompanyName(
-                userDetails.getId(), request.getCompanyName()
-        );
+        if (request.getAgentId() != null) {
+            // Handle agent conversation
+            Optional<Conversation> existing = conversationRepository.findByUserIdAndAgentId(
+                    userDetails.getId(), request.getAgentId()
+            );
 
-        if (existing.isPresent()) {
-            return ResponseEntity.ok(Map.of("conversationId", existing.get().getId()));
+            if (existing.isPresent()) {
+                return ResponseEntity.ok(Map.of("conversationId", existing.get().getId()));
+            }
+
+            Conversation conversation = new Conversation();
+            conversation.setUserId(userDetails.getId());
+            conversation.setAgentId(request.getAgentId());
+            conversation.setCompanyType("agent"); // Differentiate agent conversations
+            conversation.setCompanyName("Agent Conversation"); // Placeholder for not-null constraint
+            conversation.setStatus("active");
+            Conversation saved = conversationRepository.save(conversation);
+            return ResponseEntity.ok(Map.of("conversationId", saved.getId()));
+
+        } else {
+            // Handle company conversation
+            Optional<Conversation> existing = conversationRepository.findByUserIdAndCompanyName(
+                    userDetails.getId(), request.getCompanyName()
+            );
+
+            if (existing.isPresent()) {
+                return ResponseEntity.ok(Map.of("conversationId", existing.get().getId()));
+            }
+
+            Conversation conversation = new Conversation();
+            conversation.setUserId(userDetails.getId());
+            conversation.setCompanyType(request.getCompanyType());
+            conversation.setCompanyName(request.getCompanyName());
+            conversation.setStatus("active");
+
+            if (request.getVehicleId() != null) {
+                conversation.setVehicleId(request.getVehicleId());
+            }
+            if (request.getInquiryType() != null) {
+                conversation.setInquiryType(request.getInquiryType());
+            }
+
+            Conversation saved = conversationRepository.save(conversation);
+            return ResponseEntity.ok(Map.of("conversationId", saved.getId()));
         }
-
-        // Create new conversation
-        Conversation conversation = new Conversation();
-        conversation.setUserId(userDetails.getId());
-        conversation.setCompanyType(request.getCompanyType());
-        conversation.setCompanyName(request.getCompanyName());
-        conversation.setStatus("active");
-
-        // NEW: Add vehicle and inquiry type
-        if (request.getVehicleId() != null) {
-            conversation.setVehicleId(request.getVehicleId());
-        }
-        if (request.getInquiryType() != null) {
-            conversation.setInquiryType(request.getInquiryType());
-        }
-
-        Conversation saved = conversationRepository.save(conversation);
-        return ResponseEntity.ok(Map.of("conversationId", saved.getId()));
     }
 
     /**
@@ -443,6 +480,18 @@ public class UserController {
     }
 
     /**
+     * Get approved agents
+     */
+    @GetMapping("/approved-agents")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<User>> getApprovedAgents() {
+        Role agentRole = roleRepository.findByName(ERole.ROLE_AGENT)
+                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+        List<User> agents = userRepository.findAllByRolesContaining(agentRole);
+        return ResponseEntity.ok(agents);
+    }
+
+    /**
      * Get unread message count
      */
     @GetMapping("/messages/unread-count")
@@ -457,7 +506,10 @@ public class UserController {
 
         Long count = 0L;
         if (!conversationIds.isEmpty()) {
-            count = messageRepository.countUnreadMessagesByConversationIds(conversationIds, "company");
+            // Count unread messages from both 'company' and 'agent'
+            Long companyUnread = messageRepository.countUnreadMessagesByConversationIdsAndSenderType(conversationIds, "company");
+            Long agentUnread = messageRepository.countUnreadMessagesByConversationIdsAndSenderType(conversationIds, "agent");
+            count = companyUnread + agentUnread;
         }
 
         return ResponseEntity.ok(Map.of("count", count));

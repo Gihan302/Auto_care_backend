@@ -3,8 +3,10 @@ package com.autocare.autocarebackend.payload.request;
 public class ConversationRequest {
     private String companyName;
     private String companyType;
-    private Long vehicleId;          // ADD THIS
-    private String inquiryType;      // ADD THIS
+    private Long agentId;
+    private Long vehicleId;
+    private String inquiryType;
+    private String message; // Optional initial message
 
     // Getters and Setters
     public String getCompanyName() {
@@ -23,6 +25,14 @@ public class ConversationRequest {
         this.companyType = companyType;
     }
 
+    public Long getAgentId() {
+        return agentId;
+    }
+
+    public void setAgentId(Long agentId) {
+        this.agentId = agentId;
+    }
+
     public Long getVehicleId() {
         return vehicleId;
     }
@@ -37,5 +47,13 @@ public class ConversationRequest {
 
     public void setInquiryType(String inquiryType) {
         this.inquiryType = inquiryType;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 }
