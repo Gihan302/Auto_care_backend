@@ -60,18 +60,23 @@ public class MessageController {
         List<ConversationResponse> responses = conversations.stream().map(conv -> {
             Message lastMessage = messageRepository.findFirstByConversationIdOrderByCreatedAtDesc(conv.getId());
 
-            // Determine senderType for unread messages based on conversation type
             String unreadSenderType;
-            String participantName;
+            String participantName = null;
+            String companyName = null;
             String participantType;
 
             if (conv.getAgentId() != null) {
                 unreadSenderType = "agent";
-                participantName = conv.getParticipantName();
+                Optional<User> agent = userRepository.findById(conv.getAgentId());
+                if (agent.isPresent()) {
+                    participantName = agent.get().getFname() + " " + agent.get().getLname();
+                } else {
+                    participantName = "Unknown Agent"; // Fallback
+                }
                 participantType = "agent";
             } else {
                 unreadSenderType = "company";
-                participantName = conv.getCompanyName();
+                companyName = conv.getCompanyName();
                 participantType = conv.getCompanyType();
             }
 
@@ -82,6 +87,7 @@ public class MessageController {
             return new ConversationResponse(
                     conv.getId(),
                     participantName,
+                    companyName,
                     participantType,
                     conv.getStatus(),
                     lastMessage != null ? lastMessage.getMessageText() : "",

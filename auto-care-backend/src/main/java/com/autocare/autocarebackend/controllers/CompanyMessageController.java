@@ -101,9 +101,16 @@ public class CompanyMessageController {
             Long unreadCount = messageRepository.countByConversationIdAndSenderTypeAndIsRead(
                     conv.getId(), "user", false
             );
+            
+            Optional<User> user = userRepository.findById(conv.getUserId());
+            String participantName = "Unknown User";
+            if (user.isPresent()) {
+                participantName = user.get().getFname() + " " + user.get().getLname();
+            }
 
             return new ConversationResponse(
                     conv.getId(),
+                    participantName,
                     conv.getCompanyName(),
                     conv.getCompanyType(),
                     conv.getStatus(),

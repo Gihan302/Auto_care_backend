@@ -79,6 +79,7 @@ public class AgentController {
                             conversation.getId(),
                             participant.getFname() + " " + participant.getLname(), // participantName
                             null, // companyName (no company for agent-user conv)
+                            "agent", // companyType for agent-user conversations
                             "active", // status for agent-user conversations
                             lastMessage != null ? lastMessage.getMessageText() : "No messages yet",
                             lastMessage != null ? lastMessage.getCreatedAt() : null,
