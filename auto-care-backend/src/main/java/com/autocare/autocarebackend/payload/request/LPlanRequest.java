@@ -1,34 +1,12 @@
 package com.autocare.autocarebackend.payload.request;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-
 public class LPlanRequest {
-
-    @NotNull
-    private Long adId;
-
-    @NotBlank
     private String planAmount;
-
-    @NotBlank
     private String noOfInstallments;
-
-    @NotBlank
     private String interest;
-
-    @NotBlank
     private String instAmount;
-
     private String description;
-
-    public Long getAdId() {
-        return adId;
-    }
-
-    public void setAdId(Long adId) {
-        this.adId = adId;
-    }
+    private Long adId;
 
     public String getPlanAmount() {
         return planAmount;
@@ -68,5 +46,13 @@ public class LPlanRequest {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Long getAdId() {
+        return adId;
+    }
+
+    public void setAdId(Long adId) {
+        this.adId = adId;
     }
 }

@@ -1,6 +1,7 @@
 package com.autocare.autocarebackend.repository;
 
 import com.autocare.autocarebackend.models.Conversation;
+import com.autocare.autocarebackend.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -18,9 +19,15 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
 
     Optional<Conversation> findByUserIdAndCompanyName(Long userId, String companyName);
 
+    Optional<Conversation> findByUserIdAndAgentId(Long userId, Long agentId);
+
     List<Conversation> findByCompanyNameOrderByUpdatedAtDesc(String companyName);
 
     List<Conversation> findByCompanyName(String companyName);
+
+    List<Conversation> findByAgentIdOrderByUpdatedAtDesc(Long agentId);
+
+    List<Conversation> findByAgentId(Long agentId); // Re-added
 
     @Modifying
     @Transactional

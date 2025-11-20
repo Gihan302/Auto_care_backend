@@ -55,6 +55,25 @@ public class AdminController {
         }
     }
 
+    @GetMapping("/users/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+        try {
+            Optional<com.autocare.autocarebackend.models.User> user = userRepository.findById(id);
+            if (user.isEmpty()) {
+                logger.warn("⚠️ User not found with ID: {}", id);
+                return ResponseEntity.status(404)
+                        .body(new MessageResponse("User not found"));
+            }
+            logger.info("✅ Retrieved user with ID: {}", id);
+            return ResponseEntity.ok(user.get());
+        } catch (Exception e) {
+            logger.error("❌ Error fetching user: {}", e.getMessage());
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error fetching user"));
+        }
+    }
+
     // ============================================
     // ADVERTISEMENT MANAGEMENT ENDPOINTS
     // ============================================

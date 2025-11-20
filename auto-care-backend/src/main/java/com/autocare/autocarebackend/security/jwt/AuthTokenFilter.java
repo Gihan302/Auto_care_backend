@@ -101,7 +101,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
-        boolean skip = path.startsWith("/api/auth/") || path.equals("/error");
+        boolean skip = path.startsWith("/api/auth/");
         if (skip) {
             logger.info("⏭️ Skipping JWT filter for: " + path);
         }

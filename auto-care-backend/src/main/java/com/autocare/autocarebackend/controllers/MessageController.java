@@ -2,6 +2,7 @@ package com.autocare.autocarebackend.controllers;
 
 import com.autocare.autocarebackend.models.Conversation;
 import com.autocare.autocarebackend.models.Message;
+import com.autocare.autocarebackend.models.User;
 import com.autocare.autocarebackend.models.UserInsuranceCompany;
 import com.autocare.autocarebackend.models.UserLeasingCompany;
 import com.autocare.autocarebackend.payload.request.ConversationRequest;
@@ -40,6 +41,9 @@ public class MessageController {
     @Autowired
     private UserLeasingCompanyRepository userLeasingCompanyRepository;
 
+    @Autowired
+    private UserRepository userRepository; // Inject UserRepository
+
     @Value("${upload.location}")
     private String fileLocation;
 
@@ -55,14 +59,36 @@ public class MessageController {
 
         List<ConversationResponse> responses = conversations.stream().map(conv -> {
             Message lastMessage = messageRepository.findFirstByConversationIdOrderByCreatedAtDesc(conv.getId());
+
+            String unreadSenderType;
+            String participantName = null;
+            String companyName = null;
+            String participantType;
+
+            if (conv.getAgentId() != null) {
+                unreadSenderType = "agent";
+                Optional<User> agent = userRepository.findById(conv.getAgentId());
+                if (agent.isPresent()) {
+                    participantName = agent.get().getFname() + " " + agent.get().getLname();
+                } else {
+                    participantName = "Unknown Agent"; // Fallback
+                }
+                participantType = "agent";
+            } else {
+                unreadSenderType = "company";
+                companyName = conv.getCompanyName();
+                participantType = conv.getCompanyType();
+            }
+
             Long unreadCount = messageRepository.countByConversationIdAndSenderTypeAndIsRead(
-                    conv.getId(), "company", false
+                    conv.getId(), unreadSenderType, false
             );
 
             return new ConversationResponse(
                     conv.getId(),
-                    conv.getCompanyName(),
-                    conv.getCompanyType(),
+                    participantName,
+                    companyName,
+                    participantType,
                     conv.getStatus(),
                     lastMessage != null ? lastMessage.getMessageText() : "",
                     lastMessage != null ? lastMessage.getCreatedAt() : conv.getCreatedAt(),
@@ -81,24 +107,65 @@ public class MessageController {
     public ResponseEntity<?> createConversation(@RequestBody ConversationRequest request, Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-        // Check if conversation already exists
-        Optional<Conversation> existing = conversationRepository.findByUserIdAndCompanyName(
-                userDetails.getId(), request.getCompanyName()
-        );
+        if (request.getAgentId() != null) {
+            // Handle Agent Conversation
+            Optional<User> agentOpt = userRepository.findById(request.getAgentId());
+            if (agentOpt.isEmpty()) {
+                return ResponseEntity.status(404).body(new MessageResponse("Agent not found"));
+            }
+            User agent = agentOpt.get();
 
-        if (existing.isPresent()) {
-            return ResponseEntity.ok(Map.of("conversationId", existing.get().getId()));
+            Optional<Conversation> existing = conversationRepository.findByUserIdAndAgentId(
+                    userDetails.getId(), request.getAgentId()
+            );
+
+            if (existing.isPresent()) {
+                return ResponseEntity.ok(Map.of("conversationId", existing.get().getId()));
+            }
+
+            Conversation conversation = new Conversation();
+            conversation.setUserId(userDetails.getId());
+            conversation.setAgentId(request.getAgentId());
+            conversation.setParticipantName(agent.getFname() + " " + agent.getLname());
+            conversation.setCompanyName("Agent: " + agent.getFname());
+            conversation.setCompanyType("agent");
+            conversation.setStatus("active");
+            conversation.setVehicleId(request.getVehicleId());
+            conversation.setInquiryType("ad_inquiry");
+
+            Conversation saved = conversationRepository.save(conversation);
+
+            if (request.getMessage() != null && !request.getMessage().trim().isEmpty()) {
+                Message message = new Message();
+                message.setConversationId(saved.getId());
+                message.setSenderType("user");
+                message.setSenderId(userDetails.getId());
+                message.setMessageText(request.getMessage());
+                message.setIsRead(false);
+                messageRepository.save(message);
+            }
+
+            return ResponseEntity.ok(Map.of("conversationId", saved.getId()));
+
+        } else {
+            // Handle Company Conversation
+            Optional<Conversation> existing = conversationRepository.findByUserIdAndCompanyName(
+                    userDetails.getId(), request.getCompanyName()
+            );
+
+            if (existing.isPresent()) {
+                return ResponseEntity.ok(Map.of("conversationId", existing.get().getId()));
+            }
+
+            Conversation conversation = new Conversation();
+            conversation.setUserId(userDetails.getId());
+            conversation.setCompanyType(request.getCompanyType());
+            conversation.setCompanyName(request.getCompanyName());
+            conversation.setStatus("active");
+
+            Conversation saved = conversationRepository.save(conversation);
+            return ResponseEntity.ok(Map.of("conversationId", saved.getId()));
         }
-
-        // Create new conversation
-        Conversation conversation = new Conversation();
-        conversation.setUserId(userDetails.getId());
-        conversation.setCompanyType(request.getCompanyType());
-        conversation.setCompanyName(request.getCompanyName());
-        conversation.setStatus("active");
-
-        Conversation saved = conversationRepository.save(conversation);
-        return ResponseEntity.ok(Map.of("conversationId", saved.getId()));
     }
 
     /**
@@ -110,15 +177,20 @@ public class MessageController {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
         // Verify user has access to this conversation
-        Optional<Conversation> conversation = conversationRepository.findById(conversationId);
-        if (conversation.isEmpty() || !conversation.get().getUserId().equals(userDetails.getId())) {
+        Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
+        if (conversationOpt.isEmpty() || !conversationOpt.get().getUserId().equals(userDetails.getId())) {
             return ResponseEntity.status(403).body(new MessageResponse("Access denied"));
         }
+        Conversation conversation = conversationOpt.get();
 
         List<Message> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
 
-        // Mark company messages as read
-        messageRepository.markMessagesAsRead(conversationId, "company");
+        // Mark messages as read based on who the other participant is
+        if (conversation.getAgentId() != null) {
+            messageRepository.markMessagesAsRead(conversationId, "agent");
+        } else {
+            messageRepository.markMessagesAsRead(conversationId, "company");
+        }
 
         return ResponseEntity.ok(messages);
     }
@@ -136,15 +208,16 @@ public class MessageController {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
         // Verify user has access to this conversation
-        Optional<Conversation> conversation = conversationRepository.findById(conversationId);
-        if (conversation.isEmpty() || !conversation.get().getUserId().equals(userDetails.getId())) {
+        Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
+        if (conversationOpt.isEmpty() || !conversationOpt.get().getUserId().equals(userDetails.getId())) {
             return ResponseEntity.status(403).body(new MessageResponse("Access denied"));
         }
+        Conversation conversation = conversationOpt.get();
 
         // Create message
         Message message = new Message();
         message.setConversationId(conversationId);
-        message.setSenderType("user");
+        message.setSenderType("user"); // User is always the sender here
         message.setSenderId(userDetails.getId());
         message.setMessageText(request.getMessageText());
         message.setIsRead(false);
@@ -171,10 +244,11 @@ public class MessageController {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
         // Verify user has access to this conversation
-        Optional<Conversation> conversation = conversationRepository.findById(conversationId);
-        if (conversation.isEmpty() || !conversation.get().getUserId().equals(userDetails.getId())) {
+        Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
+        if (conversationOpt.isEmpty() || !conversationOpt.get().getUserId().equals(userDetails.getId())) {
             return ResponseEntity.status(403).body(new MessageResponse("Access denied"));
         }
+        Conversation conversation = conversationOpt.get();
 
         // Validate file
         if (file.isEmpty()) {
@@ -325,7 +399,10 @@ public class MessageController {
 
         Long count = 0L;
         if (!conversationIds.isEmpty()) {
-            count = messageRepository.countUnreadMessagesByConversationIds(conversationIds, "company");
+            // Count unread messages from both 'company' and 'agent'
+            Long companyUnread = messageRepository.countUnreadMessagesByConversationIdsAndSenderType(conversationIds, "company");
+            Long agentUnread = messageRepository.countUnreadMessagesByConversationIdsAndSenderType(conversationIds, "agent");
+            count = companyUnread + agentUnread;
         }
 
         return ResponseEntity.ok(Map.of("count", count));
@@ -340,12 +417,18 @@ public class MessageController {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
         // Verify user has access to this conversation
-        Optional<Conversation> conversation = conversationRepository.findById(conversationId);
-        if (conversation.isEmpty() || !conversation.get().getUserId().equals(userDetails.getId())) {
+        Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
+        if (conversationOpt.isEmpty() || !conversationOpt.get().getUserId().equals(userDetails.getId())) {
             return ResponseEntity.status(403).body(new MessageResponse("Access denied"));
         }
+        Conversation conversation = conversationOpt.get();
 
-        messageRepository.markMessagesAsRead(conversationId, "company");
+        // Mark messages as read based on who the other participant is
+        if (conversation.getAgentId() != null) {
+            messageRepository.markMessagesAsRead(conversationId, "agent");
+        } else {
+            messageRepository.markMessagesAsRead(conversationId, "company");
+        }
 
         return ResponseEntity.ok(Map.of("success", true));
     }

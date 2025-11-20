@@ -94,6 +94,7 @@ public class WebSecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/v1/leasing-companies/**").permitAll()
                         .requestMatchers("/api/v1/insurance-companies/**").permitAll()
                         .requestMatchers("/api/leasing-plans").permitAll()

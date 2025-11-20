@@ -14,6 +14,12 @@ public class Conversation {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    @Column(name = "agent_id")
+    private Long agentId;
+
+    @Column(name = "participant_name")
+    private String participantName;
+
     @Column(name = "company_type", nullable = false)
     private String companyType; // "insurance" or "leasing"
 
@@ -59,6 +65,12 @@ public class Conversation {
 
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
+
+    public Long getAgentId() { return agentId; }
+    public void setAgentId(Long agentId) { this.agentId = agentId; }
+
+    public String getParticipantName() { return participantName; }
+    public void setParticipantName(String participantName) { this.participantName = participantName; }
 
     public String getCompanyType() { return companyType; }
     public void setCompanyType(String companyType) { this.companyType = companyType; }
