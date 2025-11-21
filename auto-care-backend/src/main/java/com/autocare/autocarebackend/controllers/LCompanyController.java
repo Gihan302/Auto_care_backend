@@ -1,14 +1,13 @@
 package com.autocare.autocarebackend.controllers;
 
 import com.autocare.autocarebackend.models.Advertisement;
-import com.autocare.autocarebackend.models.LPlan;
+import com.autocare.autocarebackend.models.LeasingPlan;
 import com.autocare.autocarebackend.models.User;
-import com.autocare.autocarebackend.payload.request.LPlanRequest;
+import com.autocare.autocarebackend.payload.request.LeasingPlanRequest;
 import com.autocare.autocarebackend.payload.response.MessageResponse;
 import com.autocare.autocarebackend.repository.AdRepository;
-import com.autocare.autocarebackend.repository.LPlanRepository;
+import com.autocare.autocarebackend.repository.LeasingPlanRepository;
 import com.autocare.autocarebackend.repository.UserRepository;
-import com.autocare.autocarebackend.security.services.LPlanDetailsImpl;
 import com.autocare.autocarebackend.security.services.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -29,17 +28,14 @@ public class LCompanyController {
     UserRepository userRepository;
 
     @Autowired
-    LPlanRepository lPlanRepository;
-
-    @Autowired
-    LPlanDetailsImpl lPlanDetails;
+    LeasingPlanRepository leasingPlanRepository;
 
     @Autowired
     AdRepository adRepository;
 
     @PostMapping("/postlplan")
     @PreAuthorize("hasRole('ROLE_LCOMPANY')")
-    public ResponseEntity<?> lPlanPost(@RequestBody LPlanRequest lPlanRequest , Authentication authentication){
+    public ResponseEntity<?> leasingPlanPost(@RequestBody LeasingPlanRequest leasingPlanRequest , Authentication authentication){
         UserDetailsImpl userDetails=(UserDetailsImpl) authentication.getPrincipal();
 
         // --- SAFER LOGIC ---
@@ -49,24 +45,28 @@ public class LCompanyController {
                 .orElseThrow(() -> new RuntimeException("Error: User not found."));
 
         // Find the advertisement
-        Optional<Advertisement> advertisementOptional = adRepository.findById(lPlanRequest.getAdId());
+        Optional<Advertisement> advertisementOptional = adRepository.findById(leasingPlanRequest.getAdId());
 
         // Check if the advertisement exists
         if(advertisementOptional.isPresent()){
             // Get the actual advertisement object
             Advertisement advertisement = advertisementOptional.get();
 
-            LPlan lPlan = new LPlan(
-                    lPlanRequest.getPlanAmount(),
-                    lPlanRequest.getNoOfInstallments(),
-                    lPlanRequest.getInterest(),
-                    lPlanRequest.getInstAmount(),
-                    lPlanRequest.getDescription(),
+            LeasingPlan leasingPlan = new LeasingPlan(
+                    leasingPlanRequest.getPlanName(),
+                    leasingPlanRequest.getVehicleType(),
+                    leasingPlanRequest.getLeaseTerm(),
+                    leasingPlanRequest.getInterestRate(),
+                    leasingPlanRequest.getMonthlyPayment(),
+                    leasingPlanRequest.getDescription(),
                     user,
-                    advertisement
+                    advertisement,
+                    leasingPlanRequest.getPlanAmount(),
+                    leasingPlanRequest.getNoOfInstallments(),
+                    leasingPlanRequest.getDownPayment()
             );
 
-            lPlanDetails.saveLPlanDetails(lPlan);
+            leasingPlanRepository.save(leasingPlan);
             return ResponseEntity.ok(new MessageResponse("Plan Add sucessfully!"));
         } else {
             // If the Optional was empty, return the Bad Request
@@ -98,11 +98,11 @@ public class LCompanyController {
 
     @GetMapping("/myplans")
     @PreAuthorize("hasRole('ROLE_LCOMPANY')")
-    public List<LPlan> getMyPlans(Authentication authentication) {
+    public List<LeasingPlan> getMyPlans(Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User user = userRepository.findById(userDetails.getId()).get();
         // This query finds all LPlan entities associated with the logged-in user (LCompany)
-        return lPlanRepository.findByUser(user);
+        return leasingPlanRepository.findByUser(user);
     }
 
     @GetMapping("/users")
@@ -110,7 +110,7 @@ public class LCompanyController {
     public List<User> getUsers(Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User companyUser = userRepository.findById(userDetails.getId()).get();
-        List<LPlan> plans = lPlanRepository.findByUser(companyUser);
+        List<LeasingPlan> plans = leasingPlanRepository.findByUser(companyUser);
         return plans.stream()
                 .map(plan -> plan.getAdvertisement().getUser())
                 .distinct()

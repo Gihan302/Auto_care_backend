@@ -15,6 +15,12 @@ public class InsurancePlanRequest {
 
     private String description;
 
+    private String planType;
+
+    private Double premium;
+
+    private Long adId;
+
     public String getPlanName() {
         return planName;
     }
@@ -45,5 +51,29 @@ public class InsurancePlanRequest {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getPlanType() {
+        return planType;
+    }
+
+    public void setPlanType(String planType) {
+        this.planType = planType;
+    }
+
+    public Double getPremium() {
+        return premium;
+    }
+
+    public void setPremium(Double premium) {
+        this.premium = premium;
+    }
+
+    public Long getAdId() {
+        return adId;
+    }
+
+    public void setAdId(Long adId) {
+        this.adId = adId;
     }
 }
