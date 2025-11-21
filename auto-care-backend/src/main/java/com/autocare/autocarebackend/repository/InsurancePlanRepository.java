@@ -10,4 +10,5 @@ import java.util.List;
 @Repository
 public interface InsurancePlanRepository extends JpaRepository<InsurancePlan, Long> {
     List<InsurancePlan> findByUser(User user);
+    List<InsurancePlan> findAllByAdvertisement_Id(Long adId);
 }

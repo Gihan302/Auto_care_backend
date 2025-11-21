@@ -1,6 +1,5 @@
 package com.autocare.autocarebackend.controllers;
 
-import com.autocare.autocarebackend.models.LPlan;
 import com.autocare.autocarebackend.models.LeasingPlan;
 import com.autocare.autocarebackend.models.User;
 import com.autocare.autocarebackend.payload.request.LeasingPlanRequest;

@@ -16,6 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -23,7 +24,7 @@ import java.util.List;
 public class ICompanyController {
 
     @Autowired
-    private InsurancePlanRepository iPlanRepository;
+    private InsurancePlanRepository insurancePlanRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -33,20 +34,29 @@ public class ICompanyController {
 
     @PostMapping("/postplan")
     @PreAuthorize("hasRole('ROLE_ICOMPANY')")
-    public ResponseEntity<?> iPlanPost(@RequestBody InsurancePlanRequest iPlanRequest, Authentication authentication) {
+    public ResponseEntity<?> insurancePlanPost(@RequestBody InsurancePlanRequest insurancePlanRequest, Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User user = userRepository.findById(userDetails.getId())
                 .orElseThrow(() -> new RuntimeException("Error: User not found."));
 
-        InsurancePlan iPlan = new InsurancePlan(
-                iPlanRequest.getPlanName(),
-                iPlanRequest.getCoverage(),
-                iPlanRequest.getPrice(),
-                iPlanRequest.getDescription(),
-                user
+        Optional<Advertisement> advertisementOptional = adRepository.findById(insurancePlanRequest.getAdId());
+        if (advertisementOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: Invalid Advertisement Id!"));
+        }
+        Advertisement advertisement = advertisementOptional.get();
+
+        InsurancePlan insurancePlan = new InsurancePlan(
+                insurancePlanRequest.getPlanName(),
+                insurancePlanRequest.getDescription(),
+                insurancePlanRequest.getCoverage(),
+                Double.parseDouble(insurancePlanRequest.getPrice()),
+                user,
+                insurancePlanRequest.getPlanType(),
+                insurancePlanRequest.getPremium(),
+                advertisement
         );
 
-        iPlanRepository.save(iPlan);
+        insurancePlanRepository.save(insurancePlan);
         return ResponseEntity.ok(new MessageResponse("Plan added successfully!"));
     }
 
@@ -55,7 +65,7 @@ public class ICompanyController {
     public List<InsurancePlan> getMyPlans(Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User user = userRepository.findById(userDetails.getId()).get();
-        return iPlanRepository.findByUser(user);
+        return insurancePlanRepository.findByUser(user);
     }
 
     @GetMapping("/getadconfrim")
