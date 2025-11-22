@@ -1,6 +1,6 @@
 package com.autocare.autocarebackend.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 @Entity
@@ -22,14 +22,13 @@ public class InsurancePlan {
 
     private Double premium;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id")
-    @JsonIgnore
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ad_id")
-    @JsonIgnore
+    @JsonBackReference
     private Advertisement advertisement;
 
     public InsurancePlan() {

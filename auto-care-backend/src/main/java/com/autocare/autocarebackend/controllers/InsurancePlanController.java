@@ -86,4 +86,9 @@ public class InsurancePlanController {
         insurancePlanRepository.delete(existingPlan);
         return ResponseEntity.ok(new MessageResponse("Insurance plan deleted successfully!"));
     }
+
+    @GetMapping("/public/all")
+    public List<InsurancePlan> getAllPlans() {
+        return insurancePlanRepository.findAll();
+    }
 }
