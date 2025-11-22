@@ -1,8 +1,8 @@
 package com.autocare.autocarebackend.controllers;
 
 import com.autocare.autocarebackend.models.ERole;
-import com.autocare.autocarebackend.models.IPlan;
-import com.autocare.autocarebackend.models.LPlan;
+import com.autocare.autocarebackend.models.InsurancePlan;
+import com.autocare.autocarebackend.models.LeasingPlan;
 import com.autocare.autocarebackend.models.Role;
 import com.autocare.autocarebackend.models.User;
 import com.autocare.autocarebackend.models.Conversation;
@@ -14,8 +14,8 @@ import com.autocare.autocarebackend.payload.request.MessageRequest;
 import com.autocare.autocarebackend.payload.request.ConversationRequest;
 import com.autocare.autocarebackend.payload.response.MessageResponse;
 import com.autocare.autocarebackend.payload.response.ConversationResponse;
-import com.autocare.autocarebackend.repository.IPlanRepository;
-import com.autocare.autocarebackend.repository.LPlanRepository;
+import com.autocare.autocarebackend.repository.InsurancePlanRepository;
+import com.autocare.autocarebackend.repository.LeasingPlanRepository;
 import com.autocare.autocarebackend.repository.RoleRepository;
 import com.autocare.autocarebackend.repository.UserRepository;
 import com.autocare.autocarebackend.repository.ConversationRepository;
@@ -58,10 +58,10 @@ public class UserController {
     NormalUserImpl normalUser;
 
     @Autowired
-    LPlanRepository lPlanRepository;
+    LeasingPlanRepository leasingPlanRepository;
 
     @Autowired
-    IPlanRepository iPlanRepository;
+    InsurancePlanRepository insurancePlanRepository;
 
     @Autowired
     ConversationRepository conversationRepository;
@@ -149,14 +149,14 @@ public class UserController {
         return userRepository.findById(userDetails.getId()).get();
     }
 
-    @GetMapping("/getlplan/{adId}")
-    public List<LPlan> getLPlan(@PathVariable Long adId) {
-        return lPlanRepository.findAllByAdvertisement_Id(adId);
+    @GetMapping("/getleasingplan/{adId}")
+    public List<LeasingPlan> getLeasingPlan(@PathVariable Long adId) {
+        return leasingPlanRepository.findAllByAdvertisement_Id(adId);
     }
 
-    @GetMapping("/getiplan/{adId}")
-    public List<IPlan> getIPlan(@PathVariable Long adId) {
-        return iPlanRepository.findAllByAdvertisement_Id(adId);
+    @GetMapping("/getinsuranceplan/{adId}")
+    public List<InsurancePlan> getInsurancePlan(@PathVariable Long adId) {
+        return insurancePlanRepository.findAllByAdvertisement_Id(adId);
     }
 
     @GetMapping("/getUserById/{id}")

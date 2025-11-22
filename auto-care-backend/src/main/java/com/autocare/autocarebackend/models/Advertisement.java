@@ -98,15 +98,15 @@ public class Advertisement {
 
     @OneToMany(mappedBy = "advertisement")
     @JsonManagedReference
-    private List<IPlan> iPlan;
+    private List<InsurancePlan> insurancePlans;
 
     @JsonManagedReference
     @OneToMany(mappedBy = "advertisement")
     Set<ReportAd> reportAds;
 
-    @OneToMany(mappedBy = "advertisement")
+    @OneToOne(mappedBy = "advertisement")
     @JsonManagedReference
-    private List<LPlan> lPlans;
+    private LeasingPlan leasingPlan;
 
     public Advertisement() {
     }
@@ -366,12 +366,12 @@ public class Advertisement {
         this.user = user;
     }
 
-    public List<LPlan> getlPlans() {
-        return lPlans;
+    public LeasingPlan getLeasingPlan() {
+        return leasingPlan;
     }
 
-    public void setlPlans(List<LPlan> lPlans) {
-        this.lPlans = lPlans;
+    public void setLeasingPlan(LeasingPlan leasingPlan) {
+        this.leasingPlan = leasingPlan;
     }
 
     public Set<ReportAd> getReportAds() {
@@ -406,11 +406,11 @@ public class Advertisement {
         this.datetime = datetime;
     }
 
-    public List<IPlan> getiPlan() {
-        return iPlan;
+    public List<InsurancePlan> getInsurancePlans() {
+        return insurancePlans;
     }
 
-    public void setiPlan(List<IPlan> iPlan) {
-        this.iPlan = iPlan;
+    public void setInsurancePlans(List<InsurancePlan> insurancePlans) {
+        this.insurancePlans = insurancePlans;
     }
 }

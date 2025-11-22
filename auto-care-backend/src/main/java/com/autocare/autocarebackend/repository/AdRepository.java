@@ -44,24 +44,24 @@ public interface AdRepository extends JpaRepository<Advertisement, Long> {
     // --- LOGIC FIX ---
     // Get ads not in IPlan for a specific Insurance company.
     // Removed "a.user.id = :uid" to find ads from ALL users.
-    @Query(value = "SELECT a FROM Advertisement a WHERE a.id NOT IN (SELECT i.advertisement.id FROM IPlan i WHERE i.user.id = :uid)")
+    @Query(value = "SELECT a FROM Advertisement a WHERE a.id NOT IN (SELECT i.advertisement.id FROM InsurancePlan i WHERE i.user.id = :uid)")
     List<Advertisement> getIPendingAd(@Param("uid") Long uid);
 
     // --- LOGIC FIX ---
     // Get ads in IPlan for a specific Insurance company.
     // Removed "a.user.id = :uid" to find ads from ALL users.
-    @Query(value = "SELECT a FROM Advertisement a WHERE a.id IN (SELECT i.advertisement.id FROM IPlan i WHERE i.user.id = :uid)")
+    @Query(value = "SELECT a FROM Advertisement a WHERE a.id IN (SELECT i.advertisement.id FROM InsurancePlan i WHERE i.user.id = :uid)")
     List<Advertisement> getIConfrimAd(@Param("uid") Long uid);
 
     // --- LOGIC FIX ---
     // Get ads not in LPlan for a specific Leasing company.
     // Removed "a.user.id = :uid" to find ads from ALL users that this company hasn't added a plan to.
-    @Query(value = "SELECT a FROM Advertisement a WHERE a.id NOT IN (SELECT l.advertisement.id FROM LPlan l WHERE l.user.id = :uid)")
+    @Query(value = "SELECT a FROM Advertisement a WHERE a.id NOT IN (SELECT l.advertisement.id FROM LeasingPlan l WHERE l.user.id = :uid)")
     List<Advertisement> getLPendingAd(@Param("uid") Long uid);
 
     // --- LOGIC FIX ---
     // Get ads in LPlan for a specific Leasing company.
     // Removed "a.user.id = :uid" to find ads from ALL users that this company HAS added a plan to.
-    @Query(value = "SELECT a FROM Advertisement a WHERE a.id IN (SELECT l.advertisement.id FROM LPlan l WHERE l.user.id = :uid)")
+    @Query(value = "SELECT a FROM Advertisement a WHERE a.id IN (SELECT l.advertisement.id FROM LeasingPlan l WHERE l.user.id = :uid)")
     List<Advertisement> getLConfrimAd(@Param("uid") Long uid);
 }
