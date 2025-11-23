@@ -91,10 +91,12 @@ public class InsurancePlanController {
     public List<InsurancePlan> getAllPlans() {
         return insurancePlanRepository.findAll();
     }
+
     
     @GetMapping("/public/{id}")
     public ResponseEntity<InsurancePlan> getPublicPlanById(@PathVariable Long id) {
         Optional<InsurancePlan> insurancePlan = insurancePlanRepository.findById(id);
         return insurancePlan.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
+
 }
