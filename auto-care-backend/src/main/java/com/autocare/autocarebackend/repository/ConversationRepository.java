@@ -18,6 +18,15 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
 
     Optional<Conversation> findByUserIdAndCompanyName(Long userId, String companyName);
 
+    // Company queries
+    List<Conversation> findByCompanyNameOrderByUpdatedAtDesc(String companyName);
+
+    List<Conversation> findByCompanyName(String companyName);
+
+    // ADD THIS NEW METHOD for dropdown
+    @Query("SELECT DISTINCT c.companyName FROM Conversation c WHERE c.companyType = ?1 ORDER BY c.companyName")
+    List<String> findDistinctCompanyNamesByType(String companyType);
+
     @Modifying
     @Transactional
     @Query("UPDATE Conversation c SET c.updatedAt = CURRENT_TIMESTAMP WHERE c.id = ?1")

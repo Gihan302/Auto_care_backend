@@ -1,0 +1,27 @@
+package com.autocare.autocarebackend.payload.response;
+
+public class UserDetailsResponse {
+    private String name;
+    private String email;
+
+    public UserDetailsResponse(String name, String email) {
+        this.name = name;
+        this.email = email;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+}

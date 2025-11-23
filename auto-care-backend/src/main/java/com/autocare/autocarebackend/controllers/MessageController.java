@@ -75,6 +75,7 @@ public class MessageController {
 
     /**
      * Create a new conversation or get existing one
+     * THIS IS THE CORRECTED, SINGLE METHOD
      */
     @PostMapping("/conversations")
     @PreAuthorize("hasRole('ROLE_USER')")
@@ -96,6 +97,11 @@ public class MessageController {
         conversation.setCompanyType(request.getCompanyType());
         conversation.setCompanyName(request.getCompanyName());
         conversation.setStatus("active");
+
+        // --- ADDED LINES ---
+        conversation.setVehicleId(request.getVehicleId());
+        conversation.setInquiryType(request.getInquiryType());
+        // --- END OF ADDED LINES ---
 
         Conversation saved = conversationRepository.save(conversation);
         return ResponseEntity.ok(Map.of("conversationId", saved.getId()));
@@ -219,6 +225,8 @@ public class MessageController {
         return ResponseEntity.ok(saved);
     }
 
+    // ... (rest of your methods are all fine) ...
+
     /**
      * Get user's insurance companies with active plans
      */
@@ -319,9 +327,9 @@ public class MessageController {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
         List<Conversation> conversations = conversationRepository.findByUserId(userDetails.getId());
-        List<Long> conversationIds = conversations.stream()
+        List<Long> conversationIds = (List<Long>) conversations.stream()
                 .map(Conversation::getId)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
 
         Long count = 0L;
         if (!conversationIds.isEmpty()) {
