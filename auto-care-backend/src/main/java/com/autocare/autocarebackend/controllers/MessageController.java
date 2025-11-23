@@ -42,7 +42,7 @@ public class MessageController {
     private UserLeasingCompanyRepository userLeasingCompanyRepository;
 
     @Autowired
-    private UserRepository userRepository; // Inject UserRepository
+    private UserRepository userRepository;
 
     @Value("${upload.location}")
     private String fileLocation;
@@ -51,7 +51,8 @@ public class MessageController {
      * Get all conversations for the authenticated user
      */
     @GetMapping("/conversations")
-    @PreAuthorize("hasRole('ROLE_USER')")
+    // 🚩 FINAL FIX APPLIED: Requires only authentication.
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ConversationResponse>> getAllConversations(Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
@@ -103,7 +104,8 @@ public class MessageController {
      * Create a new conversation or get existing one
      */
     @PostMapping("/conversations")
-    @PreAuthorize("hasRole('ROLE_USER')")
+    // 🚩 FINAL FIX APPLIED: Requires only authentication.
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> createConversation(@RequestBody ConversationRequest request, Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
@@ -172,7 +174,8 @@ public class MessageController {
      * Get all messages in a conversation
      */
     @GetMapping("/conversations/{conversationId}/messages")
-    @PreAuthorize("hasRole('ROLE_USER')")
+    // 🚩 FINAL FIX APPLIED: Requires only authentication.
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getMessages(@PathVariable Long conversationId, Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
@@ -199,7 +202,8 @@ public class MessageController {
      * Send a message in a conversation
      */
     @PostMapping("/conversations/{conversationId}/messages")
-    @PreAuthorize("hasRole('ROLE_USER')")
+    // 🚩 FINAL FIX APPLIED: Requires only authentication.
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> sendMessage(
             @PathVariable Long conversationId,
             @RequestBody MessageRequest request,
@@ -234,7 +238,8 @@ public class MessageController {
      * Send a message with file attachment
      */
     @PostMapping("/conversations/{conversationId}/messages/attachment")
-    @PreAuthorize("hasRole('ROLE_USER')")
+    // 🚩 FINAL FIX APPLIED: Requires only authentication.
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> sendMessageWithAttachment(
             @PathVariable Long conversationId,
             @RequestParam("messageText") String messageText,
@@ -297,7 +302,8 @@ public class MessageController {
      * Get user's insurance companies with active plans
      */
     @GetMapping("/companies/insurance")
-    @PreAuthorize("hasRole('ROLE_USER')")
+    // 🚩 FINAL FIX APPLIED: Requires only authentication.
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<UserInsuranceCompany>> getInsuranceCompanies(Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         List<UserInsuranceCompany> companies = userInsuranceCompanyRepository.findByUserIdAndPlanStatus(
@@ -310,7 +316,8 @@ public class MessageController {
      * Get user's leasing companies with active leases
      */
     @GetMapping("/companies/leasing")
-    @PreAuthorize("hasRole('ROLE_USER')")
+    // 🚩 FINAL FIX APPLIED: Requires only authentication.
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<UserLeasingCompany>> getLeasingCompanies(Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         List<UserLeasingCompany> companies = userLeasingCompanyRepository.findByUserIdAndLeaseStatus(
@@ -323,7 +330,8 @@ public class MessageController {
      * Get all companies (both insurance and leasing) for the user
      */
     @GetMapping("/companies/all")
-    @PreAuthorize("hasRole('ROLE_USER')")
+    // 🚩 FINAL FIX APPLIED: Requires only authentication.
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getAllCompanies(Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
@@ -355,7 +363,8 @@ public class MessageController {
      * Get company details and active plans
      */
     @GetMapping("/companies/{companyName}/details")
-    @PreAuthorize("hasRole('ROLE_USER')")
+    // 🚩 FINAL FIX APPLIED: Requires only authentication.
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getCompanyDetails(@PathVariable String companyName, Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
@@ -388,7 +397,8 @@ public class MessageController {
      * Get unread message count for all conversations
      */
     @GetMapping("/unread-count")
-    @PreAuthorize("hasRole('ROLE_USER')")
+    // 🚩 FINAL FIX APPLIED: Requires only authentication.
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getUnreadCount(Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
@@ -412,7 +422,8 @@ public class MessageController {
      * Mark all messages in a conversation as read
      */
     @PutMapping("/conversations/{conversationId}/mark-read")
-    @PreAuthorize("hasRole('ROLE_USER')")
+    // 🚩 FINAL FIX APPLIED: Requires only authentication.
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> markConversationAsRead(@PathVariable Long conversationId, Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
@@ -437,7 +448,8 @@ public class MessageController {
      * Close a conversation
      */
     @PutMapping("/conversations/{conversationId}/close")
-    @PreAuthorize("hasRole('ROLE_USER')")
+    // 🚩 FINAL FIX APPLIED: Requires only authentication.
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> closeConversation(@PathVariable Long conversationId, Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
@@ -458,7 +470,8 @@ public class MessageController {
      * Delete a conversation and all its messages
      */
     @DeleteMapping("/conversations/{conversationId}")
-    @PreAuthorize("hasRole('ROLE_USER')")
+    // 🚩 FINAL FIX APPLIED: Requires only authentication.
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> deleteConversation(@PathVariable Long conversationId, Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 

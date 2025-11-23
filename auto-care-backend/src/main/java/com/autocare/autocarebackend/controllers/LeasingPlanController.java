@@ -113,4 +113,10 @@ public class LeasingPlanController {
     public List<LeasingPlan> getAllPlans() {
         return leasingPlanRepository.findAll();
     }
+    
+    @GetMapping("/public/{id}")
+    public ResponseEntity<LeasingPlan> getPublicPlanById(@PathVariable Long id) {
+        Optional<LeasingPlan> leasingPlan = leasingPlanRepository.findById(id);
+        return leasingPlan.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    }
 }

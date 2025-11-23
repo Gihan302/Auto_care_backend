@@ -55,6 +55,7 @@ public class AgentController {
     @Autowired
     private MessageRepository messageRepository;
 
+
     @GetMapping("/messages/conversations")
     @PreAuthorize("hasRole('ROLE_AGENT')")
     public ResponseEntity<?> getAgentConversations(Authentication authentication) {
@@ -146,6 +147,7 @@ public class AgentController {
 
         return ResponseEntity.ok(participant.get());
     }
+
 
 
     @PostMapping("/create-ad")

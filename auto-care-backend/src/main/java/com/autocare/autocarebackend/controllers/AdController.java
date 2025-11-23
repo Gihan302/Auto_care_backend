@@ -14,6 +14,7 @@ import com.autocare.autocarebackend.security.services.UserDetailsImpl;
 import com.autocare.autocarebackend.security.services.ImageUploadService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -632,6 +633,19 @@ public class AdController {
             logger.error("❌ Error fetching models: {}", e.getMessage());
             return ResponseEntity.status(500)
                     .body(new MessageResponse("Error fetching models"));
+        }
+    }
+
+    @GetMapping("/getallads")
+    @PreAuthorize("hasRole('ROLE_AGENT') or hasRole('ROLE_ADMIN')")
+    public ResponseEntity<List<Advertisement>> getAllAdvertisements() {
+        try {
+            List<Advertisement> allAds = adRepository.findAll();
+            logger.info("✅ Retrieved {} all advertisements", allAds.size());
+            return ResponseEntity.ok(allAds);
+        } catch (Exception e) {
+            logger.error("❌ Error fetching all advertisements: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(null);
         }
     }
 }
