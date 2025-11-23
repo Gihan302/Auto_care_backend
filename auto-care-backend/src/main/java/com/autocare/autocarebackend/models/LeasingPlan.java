@@ -1,7 +1,7 @@
 package com.autocare.autocarebackend.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 
 @Entity
 @Table(name = "leasing_plans")
@@ -10,27 +10,48 @@ public class LeasingPlan {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
     private String planName;
 
-    @NotBlank
     private String vehicleType;
 
-    @NotBlank
     private String leaseTerm;
 
-    @NotBlank
     private String interestRate;
 
-    @NotBlank
     private String monthlyPayment;
 
     private String description;
 
-    @ManyToOne
+    private Double planAmount;
+
+    private Integer noOfInstallments;
+
+    private Double downPayment;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id")
     private User user;
 
+    @OneToOne
+    @JoinColumn(name = "ad_id")
+    @JsonIgnore
+    private Advertisement advertisement;
+
     public LeasingPlan() {
+    }
+
+    public LeasingPlan(String planName, String vehicleType, String leaseTerm, String interestRate, String monthlyPayment, String description, User user, Advertisement advertisement, Double planAmount, Integer noOfInstallments, Double downPayment) {
+        this.planName = planName;
+        this.vehicleType = vehicleType;
+        this.leaseTerm = leaseTerm;
+        this.interestRate = interestRate;
+        this.monthlyPayment = monthlyPayment;
+        this.description = description;
+        this.user = user;
+        this.advertisement = advertisement;
+        this.planAmount = planAmount;
+        this.noOfInstallments = noOfInstallments;
+        this.downPayment = downPayment;
     }
 
     public LeasingPlan(String planName, String vehicleType, String leaseTerm, String interestRate, String monthlyPayment, String description, User user) {
@@ -105,5 +126,37 @@ public class LeasingPlan {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public Double getPlanAmount() {
+        return planAmount;
+    }
+
+    public void setPlanAmount(Double planAmount) {
+        this.planAmount = planAmount;
+    }
+
+    public Integer getNoOfInstallments() {
+        return noOfInstallments;
+    }
+
+    public void setNoOfInstallments(Integer noOfInstallments) {
+        this.noOfInstallments = noOfInstallments;
+    }
+
+    public Double getDownPayment() {
+        return downPayment;
+    }
+
+    public void setDownPayment(Double downPayment) {
+        this.downPayment = downPayment;
+    }
+
+    public Advertisement getAdvertisement() {
+        return advertisement;
+    }
+
+    public void setAdvertisement(Advertisement advertisement) {
+        this.advertisement = advertisement;
     }
 }

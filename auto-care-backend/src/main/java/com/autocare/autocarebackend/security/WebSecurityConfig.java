@@ -8,10 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-// --- THIS IS THE FIX ---
-// We replace the deprecated 'EnableGlobalMethodSecurity' with 'EnableMethodSecurity'
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-// --- END OF FIX ---
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -29,8 +26,6 @@ import org.springframework.core.annotation.Order;
 
 @Configuration
 @EnableWebSecurity
-// --- THIS IS THE FIX ---
-// Replaced @EnableGlobalMethodSecurity(prePostEnabled = true) with the new annotation
 @EnableMethodSecurity
 public class WebSecurityConfig {
     @Autowired
@@ -106,11 +101,15 @@ public class WebSecurityConfig {
                         .requestMatchers("/admin/getallagents").permitAll()
                         .requestMatchers("/user/getlplan/**").permitAll()
                         .requestMatchers("/user/getiplan/**").permitAll()
-                        .requestMatchers("/api/messages/**").hasRole("USER")
-                        .requestMatchers("/api/icompany/**").authenticated()
-                        .requestMatchers("/api/lcompany/**").authenticated()
-                        .requestMatchers("/api/company/**").hasAnyRole("LCOMPANY", "ICOMPANY")
+                        .requestMatchers("/images/**").permitAll()
+                        .requestMatchers("/api/agent/messages/**").hasRole("AGENT")
 
+                        // 🚩 CORE FIX APPLIED HERE: Using .authenticated() to allow any authenticated user to access messaging.
+                        .requestMatchers("/api/messages/**").authenticated()
+
+                        .requestMatchers("/api/icompany/**").hasAnyAuthority("ROLE_ICOMPANY", "ROLE_LCOMPANY", "ROLE_ADMIN", "ROLE_AGENT", "ROLE_USER")
+                        .requestMatchers("/api/lcompany/**").hasAnyAuthority("ROLE_ICOMPANY", "ROLE_LCOMPANY", "ROLE_ADMIN", "ROLE_AGENT", "ROLE_USER")
+                        .requestMatchers("/api/company/**").hasAnyAuthority("ROLE_LCOMPANY", "ROLE_ICOMPANY")
                         .anyRequest().authenticated()
                 );
 

@@ -21,6 +21,14 @@ public class LeasingPlanRequest {
 
     private String description;
 
+    private Double planAmount;
+
+    private Integer noOfInstallments;
+
+    private Double downPayment;
+
+    private Long adId;
+
     public String getPlanName() {
         return planName;
     }
@@ -67,5 +75,37 @@ public class LeasingPlanRequest {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Double getPlanAmount() {
+        return planAmount;
+    }
+
+    public void setPlanAmount(Double planAmount) {
+        this.planAmount = planAmount;
+    }
+
+    public Integer getNoOfInstallments() {
+        return noOfInstallments;
+    }
+
+    public void setNoOfInstallments(Integer noOfInstallments) {
+        this.noOfInstallments = noOfInstallments;
+    }
+
+    public Double getDownPayment() {
+        return downPayment;
+    }
+
+    public void setDownPayment(Double downPayment) {
+        this.downPayment = downPayment;
+    }
+
+    public Long getAdId() {
+        return adId;
+    }
+
+    public void setAdId(Long adId) {
+        this.adId = adId;
     }
 }

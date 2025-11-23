@@ -1,6 +1,5 @@
 package com.autocare.autocarebackend.controllers;
 
-import com.autocare.autocarebackend.models.LPlan;
 import com.autocare.autocarebackend.models.LeasingPlan;
 import com.autocare.autocarebackend.models.User;
 import com.autocare.autocarebackend.payload.request.LeasingPlanRequest;
@@ -113,5 +112,11 @@ public class LeasingPlanController {
     @GetMapping("/public/all")
     public List<LeasingPlan> getAllPlans() {
         return leasingPlanRepository.findAll();
+    }
+    
+    @GetMapping("/public/{id}")
+    public ResponseEntity<LeasingPlan> getPublicPlanById(@PathVariable Long id) {
+        Optional<LeasingPlan> leasingPlan = leasingPlanRepository.findById(id);
+        return leasingPlan.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 }
