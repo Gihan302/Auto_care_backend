@@ -40,6 +40,9 @@ public class InsuranceApplication {
     @Column(nullable = false)
     private String address;
 
+    @Column(columnDefinition = "TEXT")
+    private String coverLetter;
+
     @Builder.Default
     @Column(nullable = false)
     private String status = "Pending";

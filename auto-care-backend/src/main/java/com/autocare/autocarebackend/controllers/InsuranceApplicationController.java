@@ -70,10 +70,10 @@ public class InsuranceApplicationController {
         List<InsuranceApplication> applications = insuranceApplicationRepository.findByUser(user);
         return ResponseEntity.ok(applications);
     }
-    
-    @PutMapping("/{id}/status")
+
+    @PostMapping("/{id}/approve")
     @PreAuthorize("hasRole('ROLE_ICOMPANY')")
-    public ResponseEntity<?> updateApplicationStatus(@PathVariable Long id, @RequestBody String status, Authentication authentication) {
+    public ResponseEntity<?> approveApplication(@PathVariable Long id, Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User companyUser = userRepository.findById(userDetails.getId()).orElseThrow(() -> new RuntimeException("Error: Company not found."));
 
@@ -87,8 +87,29 @@ public class InsuranceApplicationController {
             return ResponseEntity.status(403).body(new MessageResponse("Error: You are not authorized to update this application."));
         }
 
-        application.setStatus(status);
+        application.setStatus("Approved");
         insuranceApplicationRepository.save(application);
-        return ResponseEntity.ok(new MessageResponse("Application status updated successfully!"));
+        return ResponseEntity.ok(new MessageResponse("Application approved successfully!"));
+    }
+
+    @PostMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ROLE_ICOMPANY')")
+    public ResponseEntity<?> rejectApplication(@PathVariable Long id, Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User companyUser = userRepository.findById(userDetails.getId()).orElseThrow(() -> new RuntimeException("Error: Company not found."));
+
+        Optional<InsuranceApplication> applicationOptional = insuranceApplicationRepository.findById(id);
+        if (applicationOptional.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        InsuranceApplication application = applicationOptional.get();
+        if (!application.getPlan().getUser().getId().equals(companyUser.getId())) {
+            return ResponseEntity.status(403).body(new MessageResponse("Error: You are not authorized to update this application."));
+        }
+
+        application.setStatus("Rejected");
+        insuranceApplicationRepository.save(application);
+        return ResponseEntity.ok(new MessageResponse("Application rejected successfully!"));
     }
 }

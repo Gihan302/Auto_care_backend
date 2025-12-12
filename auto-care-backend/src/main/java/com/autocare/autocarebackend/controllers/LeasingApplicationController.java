@@ -65,9 +65,9 @@ public class LeasingApplicationController {
         return ResponseEntity.ok(applications);
     }
     
-    @PutMapping("/{id}/status")
+    @PostMapping("/{id}/approve")
     @PreAuthorize("hasRole('ROLE_LCOMPANY')")
-    public ResponseEntity<?> updateApplicationStatus(@PathVariable Long id, @RequestBody String status, Authentication authentication) {
+    public ResponseEntity<?> approveApplication(@PathVariable Long id, Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User companyUser = userRepository.findById(userDetails.getId()).orElseThrow(() -> new RuntimeException("Error: Company not found."));
 
@@ -81,9 +81,30 @@ public class LeasingApplicationController {
             return ResponseEntity.status(403).body(new MessageResponse("Error: You are not authorized to update this application."));
         }
 
-        application.setStatus(status);
+        application.setStatus("Approved");
         leasingApplicationRepository.save(application);
-        return ResponseEntity.ok(new MessageResponse("Application status updated successfully!"));
+        return ResponseEntity.ok(new MessageResponse("Application approved successfully!"));
+    }
+
+    @PostMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ROLE_LCOMPANY')")
+    public ResponseEntity<?> rejectApplication(@PathVariable Long id, Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User companyUser = userRepository.findById(userDetails.getId()).orElseThrow(() -> new RuntimeException("Error: Company not found."));
+
+        Optional<LeasingApplication> applicationOptional = leasingApplicationRepository.findById(id);
+        if (applicationOptional.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        LeasingApplication application = applicationOptional.get();
+        if (!application.getPlan().getUser().getId().equals(companyUser.getId())) {
+            return ResponseEntity.status(403).body(new MessageResponse("Error: You are not authorized to update this application."));
+        }
+
+        application.setStatus("Rejected");
+        leasingApplicationRepository.save(application);
+        return ResponseEntity.ok(new MessageResponse("Application rejected successfully!"));
     }
 
 }

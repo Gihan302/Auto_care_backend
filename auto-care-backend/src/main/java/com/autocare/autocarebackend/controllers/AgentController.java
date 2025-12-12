@@ -1,15 +1,11 @@
 package com.autocare.autocarebackend.controllers;
 
-import com.autocare.autocarebackend.models.Advertisement;
-import com.autocare.autocarebackend.models.PackagePurchase;
-import com.autocare.autocarebackend.models.Packages;
-import com.autocare.autocarebackend.models.User;
+import com.autocare.autocarebackend.models.*;
 import com.autocare.autocarebackend.payload.request.AdRequest;
 import com.autocare.autocarebackend.payload.response.MessageResponse;
-import com.autocare.autocarebackend.payload.request.PackagePurchaseRequest;
 import com.autocare.autocarebackend.repository.AdRepository;
-import com.autocare.autocarebackend.repository.PackagesRepository;
 import com.autocare.autocarebackend.repository.PackagesPurchaseRepository;
+import com.autocare.autocarebackend.repository.PackagesRepository;
 import com.autocare.autocarebackend.repository.UserRepository;
 import com.autocare.autocarebackend.security.services.AdService;
 import com.autocare.autocarebackend.security.services.NormalUserImpl;
@@ -22,9 +18,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -76,9 +71,110 @@ public class AgentController {
         System.out.println(user.getId());
         return adRepository.findAllByUser(user);
     }
+
+    @GetMapping("/recent-activity")
+    @PreAuthorize("hasRole('ROLE_AGENT')")
+    public ResponseEntity<List<AgentActivityDTO>> getRecentActivity(Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User agent = userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new RuntimeException("Error: Agent not found."));
+
+        List<AgentActivityDTO> activities = new ArrayList<>();
+
+        // Get ad-related activities
+        List<Advertisement> ads = adRepository.findAllByUser(agent);
+        for (Advertisement ad : ads) {
+            // Ad creation
+            activities.add(AgentActivityDTO.builder()
+                    .id(ad.getId())
+                    .user("You")
+                    .action("created a new ad for '" + ad.getTitle() + "'")
+                    .time(ad.getDatetime())
+                    .status("Active")
+                    .initials("Y")
+                    .avatarColor("bg-purple-500")
+                    .link("/agent/my-ads")
+                    .build());
+
+            // Ad sold
+            if (ad.getFlag() == 2) {
+                activities.add(AgentActivityDTO.builder()
+                        .id(ad.getId() * -1) // a hack to get a unique id
+                        .user("You")
+                        .action("marked '" + ad.getTitle() + "' as sold")
+                        .time(ad.getDatetime()) // This should be the sold time, but we don't have it
+                        .status("Sold")
+                        .initials("Y")
+                        .avatarColor("bg-green-500")
+                        .link("/agent/sold-ads")
+                        .build());
+            }
+        }
+
+        // Sort activities by time (descending)
+        activities.sort(Comparator.comparing(AgentActivityDTO::getTime).reversed());
+
+        return ResponseEntity.ok(activities);
+    }
+
+    @GetMapping("/stats")
+    @PreAuthorize("hasRole('ROLE_AGENT')")
+    public ResponseEntity<AgentStatsDTO> getAgentStats(Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User agent = userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new RuntimeException("Error: Agent not found."));
+
+        List<Advertisement> agentAds = adRepository.findAllByUser(agent);
+
+        long totalAds = agentAds.size();
+        long activeAds = agentAds.stream().filter(ad -> ad.getFlag() == 0 || ad.getFlag() == 1).count(); // Assuming 0 or 1 is active/pending
+        long soldAds = agentAds.stream().filter(ad -> ad.getFlag() == 2).count(); // Assuming 2 is sold
+
+        // Package Usage
+        Optional<PackagePurchase> latestPackagePurchase = packagesPurchaseRepository.findTopByUserOrderByPurchaseDateDesc(agent);
+        
+        String packageUsage = "N/A";
+        String packageDaysLeft = "N/A";
+
+        if (latestPackagePurchase.isPresent()) {
+            PackagePurchase pp = latestPackagePurchase.get();
+            long maxAd = pp.getMaxAdCount();
+            long currentAd = pp.getCurrentAdCount();
+            packageUsage = currentAd + "/" + maxAd;
+
+            // Calculate days left
+            Packages purchasedPackage = pp.getPackages(); // Assuming Packages entity is eager loaded or fetched
+            if (purchasedPackage != null && purchasedPackage.getEndingDate() != null) {
+                Date endingDate = purchasedPackage.getEndingDate();
+                long diffInMillies = endingDate.getTime() - new Date().getTime(); // Removed Math.abs, calculate difference
+
+                // Use Math.max to ensure days left is not negative
+                long diff = Math.max(0, TimeUnit.DAYS.convert(diffInMillies, TimeUnit.MILLISECONDS));
+
+                packageDaysLeft = diff + " days left";
+            } else {
+                packageDaysLeft = "Unlimited"; // Or some other default
+            }
+
+        } else {
+            packageUsage = "0/0";
+            packageDaysLeft = "No package";
+        }
+
+        AgentStatsDTO stats = AgentStatsDTO.builder()
+                .totalAds(totalAds)
+                .activeAds(activeAds)
+                .soldAds(soldAds)
+                .packageUsage(packageUsage)
+                .packageDaysLeft(packageDaysLeft)
+                .build();
+
+        return ResponseEntity.ok(stats);
+    }
+
     @PostMapping("/packagepurchase/{pkgId}")
     @PreAuthorize("hasRole('ROLE_AGENT')")
-    public ResponseEntity<?> packagePurchase(@PathVariable Long pkgId, @RequestBody PackagePurchaseRequest packagePurchaseRequest, Authentication authentication){
+    public ResponseEntity<?> packagePurchase(@PathVariable Long pkgId, @RequestBody(required = false) com.autocare.autocarebackend.payload.request.PackagePurchaseRequest packagePurchaseRequest, Authentication authentication){
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User user = userRepository.findById(userDetails.getId()).get();
         Packages packages = packagesRepository.findById(pkgId).get();
@@ -95,28 +191,6 @@ public class AgentController {
         packagesPurchaseDetails.savePackagesPurchase(packagePurchase);
 
         return ResponseEntity.ok(new MessageResponse("Plan Add sucessfully!"));
-    }
-
-    @PutMapping("/packageupdate/{pkgId}")
-    @PreAuthorize("hasRole('ROLE_AGENT')")
-    public ResponseEntity<?>packageUpdate(@PathVariable Long pkgId,Authentication authentication){
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        User user = userRepository.findById(userDetails.getId()).get();
-        Packages packages = packagesRepository.findById(pkgId).get();
-        Optional <PackagePurchase> packagePurchase = packagesPurchaseRepository.findAllByUser(user);
-        System.out.println(packagePurchase.get().getMaxAdCount());
-        if(packagePurchase.get().getMaxAdCount() == packagePurchase.get().getCurrentAdCount()){
-            return ResponseEntity
-                    .badRequest()
-                    .body(new MessageResponse("Error: Package is over!"));
-        }else{
-            Integer currendAdCount = packagePurchase.get().getCurrentAdCount() + 1;
-            System.out.println(currendAdCount);
-            packagePurchase.get().setCurrentAdCount(currendAdCount);
-            packagesPurchaseRepository.save(packagePurchase.get());
-            return ResponseEntity.ok(new MessageResponse("Plan Add sucessfully!"));
-        }
-
     }
 
     @PutMapping("/update-ad/{adId}")

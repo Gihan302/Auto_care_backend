@@ -77,7 +77,6 @@ public class LCompanyController {
         // --- END SAFER LOGIC ---
     }
 
-    // --- FIX: Reconstructed the method correctly ---
     @GetMapping("/getadconfrim")
     @PreAuthorize("hasRole('ROLE_LCOMPANY')")
     public List<Advertisement> getConfrimad(Authentication authentication){
@@ -86,7 +85,6 @@ public class LCompanyController {
         return adRepository.getLConfrimAd(user.getId());
     }
 
-    // --- FIX: Reconstructed the method correctly ---
     @GetMapping("/getpendingad")
     @PreAuthorize("hasRole('ROLE_LCOMPANY')")
     public List<Advertisement> getPending(Authentication authentication){

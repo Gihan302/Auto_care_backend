@@ -1,18 +1,19 @@
 package com.autocare.autocarebackend.controllers;
 
-import com.autocare.autocarebackend.models.Advertisement;
-import com.autocare.autocarebackend.models.CarReview;
+import com.autocare.autocarebackend.models.*;
 import com.autocare.autocarebackend.payload.response.MessageResponse;
 import com.autocare.autocarebackend.payload.response.ReviewResponse;
 import com.autocare.autocarebackend.repository.AdRepository;
 import com.autocare.autocarebackend.repository.ReviewRepository;
+import com.autocare.autocarebackend.repository.RoleRepository;
+import com.autocare.autocarebackend.repository.UserRepository;
 import com.autocare.autocarebackend.security.services.ReviewDetailsImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,7 +36,11 @@ public class AdminController {
     private ReviewDetailsImpl reviewDetails;
 
     @Autowired
-    private com.autocare.autocarebackend.repository.UserRepository userRepository;
+    private UserRepository userRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
+
 
     // ============================================
     // USER MANAGEMENT ENDPOINTS
@@ -45,7 +50,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getAllUsers() {
         try {
-            List<com.autocare.autocarebackend.models.User> users = userRepository.findAll();
+            List<User> users = userRepository.findAll();
             logger.info("📋 Retrieved {} total users", users.size());
             return ResponseEntity.ok(users);
         } catch (Exception e) {
@@ -59,7 +64,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getUserById(@PathVariable Long id) {
         try {
-            Optional<com.autocare.autocarebackend.models.User> user = userRepository.findById(id);
+            Optional<User> user = userRepository.findById(id);
             if (user.isEmpty()) {
                 logger.warn("⚠️ User not found with ID: {}", id);
                 return ResponseEntity.status(404)
@@ -72,6 +77,34 @@ public class AdminController {
             return ResponseEntity.status(500)
                     .body(new MessageResponse("Error fetching user"));
         }
+    }
+
+    @GetMapping("/getallagents")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<User> getAgentsWithRole() {
+        Role role = roleRepository.findByName(ERole.ROLE_AGENT).get();
+        return userRepository.findAllByRolesContaining(role);
+    }
+
+    @GetMapping("/getallusers")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<User> getUsersWithRole() {
+        Role role = roleRepository.findByName(ERole.ROLE_USER).get();
+        return userRepository.findAllByRolesContaining(role);
+    }
+
+    @GetMapping("/getalllcompany")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<User> getLCompanyWithRole() {
+        Role role = roleRepository.findByName(ERole.ROLE_LCOMPANY).get();
+        return userRepository.findAllByRolesContaining(role);
+    }
+
+    @GetMapping("/getallicompany")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<User> getICompanyWithRole() {
+        Role role = roleRepository.findByName(ERole.ROLE_ICOMPANY).get();
+        return userRepository.findAllByRolesContaining(role);
     }
 
     // ============================================

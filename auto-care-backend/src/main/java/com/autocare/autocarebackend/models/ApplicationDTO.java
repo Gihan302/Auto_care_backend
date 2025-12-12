@@ -11,5 +11,6 @@ public class ApplicationDTO {
     private String income;
     private String employmentStatus;
     private Long adId;
+    private String coverLetter;
     private String applicationType; // "leasing" or "insurance"
 }

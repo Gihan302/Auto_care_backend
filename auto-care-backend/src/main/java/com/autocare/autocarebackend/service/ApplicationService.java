@@ -42,6 +42,7 @@ public class ApplicationService {
                     .address(applicationDTO.getAddress())
                     .income(applicationDTO.getIncome())
                     .employmentStatus(applicationDTO.getEmploymentStatus())
+                    .coverLetter(applicationDTO.getCoverLetter())
                     .status("Pending")
                     .submittedAt(new Date())
                     .build();
@@ -61,6 +62,7 @@ public class ApplicationService {
                     .email(applicationDTO.getEmail())
                     .phone(applicationDTO.getPhone())
                     .address(applicationDTO.getAddress())
+                    .coverLetter(applicationDTO.getCoverLetter())
                     .status("Pending")
                     .submittedAt(new Date())
                     .build();

@@ -1,33 +1,79 @@
 package com.autocare.autocarebackend.payload.request;
 
+import jakarta.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import java.util.Arrays;
+
 public class AdRequest {
+
+    @NotBlank
     private String name;
+
+    @NotBlank
     private String t_number;
+
+    @NotBlank
     private String email;
+
+    @NotBlank
     private String location;
+
+    @NotBlank
     private String title;
+
+    @NotBlank
     private String price;
+
+    @NotBlank
     private String v_type;
+
+    @NotBlank
     private String manufacturer;
+
+    @NotBlank
     private String model;
+
+    @NotBlank
     private String v_condition;
+
+    @NotBlank
     private String m_year;
+
+    @NotBlank
     private String r_year;
+
+    @NotBlank
     private String mileage;
+
+    @NotBlank
     private String e_capacity;
+
+    @NotBlank
     private String transmission;
+
+    @NotBlank
     private String fuel_type;
+
+    @NotBlank
     private String colour;
+
+    @NotBlank
     private String description;
-    private String[] images; // Base64 encoded images
+
+    @NotBlank
+    private String[] images;
+
+    @NotNull
     private Integer flag;
+
+    @NotNull
     private Integer lStatus;
+
+    @NotNull
     private Integer iStatus;
 
-    // Default constructor
     public AdRequest() {}
 
-    // Constructor with all fields
     public AdRequest(String name, String t_number, String email, String location, String title,
                      String price, String v_type, String manufacturer, String model, String v_condition,
                      String m_year, String r_year, String mileage, String e_capacity, String transmission,
@@ -57,7 +103,14 @@ public class AdRequest {
         this.iStatus = iStatus;
     }
 
-    // Getters and Setters
+    public String[] getImages() {
+        return images;
+    }
+
+    public void setImages(String[] images) {
+        this.images = images;
+    }
+
     public String getName() {
         return name;
     }
@@ -202,14 +255,6 @@ public class AdRequest {
         this.description = description;
     }
 
-    public String[] getImages() {
-        return images;
-    }
-
-    public void setImages(String[] images) {
-        this.images = images;
-    }
-
     public Integer getFlag() {
         return flag;
     }
@@ -236,25 +281,25 @@ public class AdRequest {
 
     @Override
     public String toString() {
-        return "AdRequest{" +
-                "name='" + name + '\'' +
-                ", t_number='" + t_number + '\'' +
-                ", email='" + email + '\'' +
-                ", location='" + location + '\'' +
-                ", title='" + title + '\'' +
-                ", price='" + price + '\'' +
-                ", v_type='" + v_type + '\'' +
-                ", manufacturer='" + manufacturer + '\'' +
-                ", model='" + model + '\'' +
-                ", v_condition='" + v_condition + '\'' +
-                ", m_year='" + m_year + '\'' +
-                ", r_year='" + r_year + '\'' +
-                ", mileage='" + mileage + '\'' +
-                ", e_capacity='" + e_capacity + '\'' +
-                ", transmission='" + transmission + '\'' +
-                ", fuel_type='" + fuel_type + '\'' +
-                ", colour='" + colour + '\'' +
-                ", description='" + description + '\'' +
+        return "AdRequest{"
+                + "name='" + name + "'\n" +
+                ", t_number='" + t_number + "'\n" +
+                ", email='" + email + "'\n" +
+                ", location='" + location + "'\n" +
+                ", title='" + title + "'\n" +
+                ", price='" + price + "'\n" +
+                ", v_type='" + v_type + "'\n" +
+                ", manufacturer='" + manufacturer + "'\n" +
+                ", model='" + model + "'\n" +
+                ", v_condition='" + v_condition + "'\n" +
+                ", m_year='" + m_year + "'\n" +
+                ", r_year='" + r_year + "'\n" +
+                ", mileage='" + mileage + "'\n" +
+                ", e_capacity='" + e_capacity + "'\n" +
+                ", transmission='" + transmission + "'\n" +
+                ", fuel_type='" + fuel_type + "'\n" +
+                ", colour='" + colour + "'\n" +
+                ", description='" + description + "'\n" +
                 ", images=" + (images != null ? images.length + " images" : "no images") +
                 ", flag=" + flag +
                 ", lStatus=" + lStatus +

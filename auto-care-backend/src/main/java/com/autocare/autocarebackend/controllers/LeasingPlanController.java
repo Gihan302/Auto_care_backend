@@ -1,9 +1,11 @@
 package com.autocare.autocarebackend.controllers;
 
+import com.autocare.autocarebackend.models.Advertisement;
 import com.autocare.autocarebackend.models.LeasingPlan;
 import com.autocare.autocarebackend.models.User;
 import com.autocare.autocarebackend.payload.request.LeasingPlanRequest;
 import com.autocare.autocarebackend.payload.response.MessageResponse;
+import com.autocare.autocarebackend.repository.AdRepository;
 import com.autocare.autocarebackend.repository.LeasingPlanRepository;
 import com.autocare.autocarebackend.repository.UserRepository;
 import com.autocare.autocarebackend.security.services.UserDetailsImpl;
@@ -27,11 +29,20 @@ public class LeasingPlanController {
     @Autowired
     UserRepository userRepository;
 
+    @Autowired
+    AdRepository adRepository;
+
     @PostMapping
     @PreAuthorize("hasRole('ROLE_LCOMPANY')")
     public ResponseEntity<?> createPlan(@RequestBody LeasingPlanRequest leasingPlanRequest, Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User user = userRepository.findById(userDetails.getId()).get();
+
+        Optional<Advertisement> advertisementOptional = adRepository.findById(leasingPlanRequest.getAdId());
+        if (advertisementOptional.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Advertisement advertisement = advertisementOptional.get();
 
         LeasingPlan leasingPlan = new LeasingPlan(
                 leasingPlanRequest.getPlanName(),
@@ -40,7 +51,11 @@ public class LeasingPlanController {
                 leasingPlanRequest.getInterestRate(),
                 leasingPlanRequest.getMonthlyPayment(),
                 leasingPlanRequest.getDescription(),
-                user
+                user,
+                advertisement,
+                leasingPlanRequest.getPlanAmount(),
+                leasingPlanRequest.getNoOfInstallments(),
+                leasingPlanRequest.getDownPayment()
         );
 
         leasingPlanRepository.save(leasingPlan);

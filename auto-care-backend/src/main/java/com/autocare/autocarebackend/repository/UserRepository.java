@@ -15,15 +15,13 @@ public interface UserRepository extends CrudRepository<User, Long> {
 
     @Override
     Optional<User> findById(Long aLong);
-
+    
     boolean existsByUsername(String username);
 
     boolean existsByNic(String nic);
 
     @Override
     List<User> findAll();
-
-    long count(); // already provided by CrudRepository, but explicitly declared here
 
     List<User> findAllByRolesContaining(Role role);
 }

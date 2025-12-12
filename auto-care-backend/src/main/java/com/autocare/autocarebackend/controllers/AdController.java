@@ -12,14 +12,14 @@ import com.autocare.autocarebackend.security.services.AdDetailsImpl;
 import com.autocare.autocarebackend.security.services.ReportAdDetailsImpl;
 import com.autocare.autocarebackend.security.services.UserDetailsImpl;
 import com.autocare.autocarebackend.security.services.ImageUploadService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
@@ -52,7 +52,9 @@ public class AdController {
         return str == null || str.trim().isEmpty();
     }
 
+    @CrossOrigin(origins = "http://localhost:4200")
     @PostMapping("/postadd")
+    @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_ADMIN') or hasRole('ROLE_AGENT')")
     public ResponseEntity<?> AddPost(@RequestBody AdRequest adRequest) {
         try {
             // Get authentication from SecurityContext
@@ -169,9 +171,7 @@ public class AdController {
             return ResponseEntity.status(500).body(new MessageResponse("Server error: " + ex.getMessage()));
         }
     }
-    /**
-     * Returns the stored image URL (string) for a given advertisement id and image index.
-     */
+    
     @GetMapping(value = {"/getimage/{id}", "/getimage/{id}/{index}"})
     public ResponseEntity<?> getAddImage(@PathVariable("id") Long id,
                                          @PathVariable(name = "index", required = false) Integer index) {
@@ -274,8 +274,7 @@ public class AdController {
         if (user == null) return 0L;
         return adRepository.pcount(user);
     }
-    // Add these methods to your AdController.java
-
+    
     /**
      * Get all approved advertisements for comparison selection
      */

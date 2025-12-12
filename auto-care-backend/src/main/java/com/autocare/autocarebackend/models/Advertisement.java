@@ -146,18 +146,6 @@ public class Advertisement {
         this.user = user;
     }
 
-    // Getters and setters (omitted here to save space — keep your previous ones)
-    // Include all getters & setters exactly as in your original file for compilation.
-    // e.g. getImage1(), setImage1(...), getId(), setId(...), ...
-    // (Paste your original getters/setters in your project)
-    //    public Date getDatetime() {
-//        return datetime;
-//    }
-//
-//    public void setDatetime(Date datetime) {
-//        this.datetime = datetime;
-//    }
-
     public String getImage1() {
         return image1;
     }

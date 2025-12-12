@@ -1,27 +1,12 @@
 package com.autocare.autocarebackend.controllers;
 
-import com.autocare.autocarebackend.models.ERole;
-import com.autocare.autocarebackend.models.InsurancePlan;
-import com.autocare.autocarebackend.models.LeasingPlan;
-import com.autocare.autocarebackend.models.Role;
-import com.autocare.autocarebackend.models.User;
-import com.autocare.autocarebackend.models.Conversation;
-import com.autocare.autocarebackend.models.Message;
-import com.autocare.autocarebackend.models.UserInsuranceCompany;
-import com.autocare.autocarebackend.models.UserLeasingCompany;
-import com.autocare.autocarebackend.payload.request.SignupRequest;
-import com.autocare.autocarebackend.payload.request.MessageRequest;
+import com.autocare.autocarebackend.models.*;
 import com.autocare.autocarebackend.payload.request.ConversationRequest;
-import com.autocare.autocarebackend.payload.response.MessageResponse;
+import com.autocare.autocarebackend.payload.request.MessageRequest;
+import com.autocare.autocarebackend.payload.request.SignupRequest;
 import com.autocare.autocarebackend.payload.response.ConversationResponse;
-import com.autocare.autocarebackend.repository.InsurancePlanRepository;
-import com.autocare.autocarebackend.repository.LeasingPlanRepository;
-import com.autocare.autocarebackend.repository.RoleRepository;
-import com.autocare.autocarebackend.repository.UserRepository;
-import com.autocare.autocarebackend.repository.ConversationRepository;
-import com.autocare.autocarebackend.repository.MessageRepository;
-import com.autocare.autocarebackend.repository.UserInsuranceCompanyRepository;
-import com.autocare.autocarebackend.repository.UserLeasingCompanyRepository;
+import com.autocare.autocarebackend.payload.response.MessageResponse;
+import com.autocare.autocarebackend.repository.*;
 import com.autocare.autocarebackend.security.services.NormalUserImpl;
 import com.autocare.autocarebackend.security.services.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -159,7 +144,7 @@ public class UserController {
         return insurancePlanRepository.findAllByAdvertisement_Id(adId);
     }
 
-    @GetMapping("/getUserById/{id}")
+    @GetMapping("getUserById/{id}")
     public Optional<User> getUserById(@PathVariable Long id) {
         return userRepository.findById(id);
     }
@@ -212,9 +197,6 @@ public class UserController {
         return ResponseEntity.ok(responses);
     }
 
-    /**
-     * Create a new conversation or get existing one
-     */
     /**
      * Create a new conversation or get existing one (UPDATED)
      */

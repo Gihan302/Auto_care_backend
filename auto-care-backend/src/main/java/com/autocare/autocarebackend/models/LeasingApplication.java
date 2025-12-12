@@ -55,6 +55,9 @@ public class LeasingApplication {
     @Column(nullable = false)
     private String employmentStatus;
 
+    @Column(columnDefinition = "TEXT")
+    private String coverLetter;
+
     private String creditScore;
 
     @Builder.Default

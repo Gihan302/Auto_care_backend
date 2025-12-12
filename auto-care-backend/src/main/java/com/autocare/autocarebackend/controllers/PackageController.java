@@ -3,6 +3,7 @@ package com.autocare.autocarebackend.controllers;
 import com.autocare.autocarebackend.models.Packages;
 import com.autocare.autocarebackend.payload.request.PackagesRequest;
 import com.autocare.autocarebackend.payload.response.MessageResponse;
+import com.autocare.autocarebackend.repository.PackagesRepository;
 import com.autocare.autocarebackend.repository.UserRepository;
 import com.autocare.autocarebackend.security.services.PackagesDetailsImpl;
 import com.autocare.autocarebackend.security.services.UserDetailsImpl;
@@ -15,9 +16,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @CrossOrigin(origins = "*",maxAge = 3600)
 @RestController
-@RequestMapping("/api/package")
+@RequestMapping("/api/packages")
 
 
 public class PackageController {
@@ -25,6 +28,9 @@ public class PackageController {
     UserRepository userRepository;
     @Autowired
     PackagesDetailsImpl packagesDetails;
+
+    @Autowired
+    PackagesRepository packagesRepository;
 
     @PostMapping("/addpackage")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
@@ -38,5 +44,10 @@ public class PackageController {
         );
         packagesDetails.savePackages(packages);
         return ResponseEntity.ok(new MessageResponse("Package Add Succeefully!"));
+    }
+
+    @GetMapping
+    public List<Packages> getAllPackages() {
+        return packagesRepository.findAll();
     }
 }

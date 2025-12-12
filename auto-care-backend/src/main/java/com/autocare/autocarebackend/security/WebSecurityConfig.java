@@ -1,3 +1,4 @@
+
 package com.autocare.autocarebackend.security;
 
 import com.autocare.autocarebackend.security.jwt.AuthEntryPointJwt;
@@ -6,9 +7,9 @@ import com.autocare.autocarebackend.security.services.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -22,11 +23,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
-import org.springframework.core.annotation.Order;
-
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
 public class WebSecurityConfig {
     @Autowired
     UserDetailsServiceImpl userDetailsService;
@@ -34,27 +32,42 @@ public class WebSecurityConfig {
     @Autowired
     private AuthEntryPointJwt unauthorizedHandler;
 
-    @Bean
-    public AuthTokenFilter authenticationJwtTokenFilter(){
-        return new AuthTokenFilter();
-    }
+        @Bean
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
-    }
+        public AuthTokenFilter authenticationJwtTokenFilter(){
 
-    @Bean
-    public PasswordEncoder passwordEncoder(){
-        return new BCryptPasswordEncoder();
-    }
+            return new AuthTokenFilter();
+
+        }
+
+    
+
+        @Bean
+
+        public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+
+            return authenticationConfiguration.getAuthenticationManager();
+
+        }
+
+    
+
+        @Bean
+
+        public PasswordEncoder passwordEncoder(){
+
+            return new BCryptPasswordEncoder();
+
+        }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE"));
-        configuration.setAllowedHeaders(Arrays.asList("authorization", "content-type", "x-auth-token"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("authorization", "content-type", "x-auth-token", "x-requested-with"));
+        configuration.setAllowCredentials(true);
+        configuration.addExposedHeader("x-auth-token");
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
@@ -94,6 +107,8 @@ public class WebSecurityConfig {
                         .requestMatchers("/api/v1/insurance-companies/**").permitAll()
                         .requestMatchers("/api/leasing-plans").permitAll()
                         .requestMatchers("/api/leasing-plans/public/all").permitAll()
+                        .requestMatchers("/api/insurance-plans").permitAll()
+                        .requestMatchers("/api/insurance-plans/public/all").permitAll()
                         .requestMatchers("/api/advertisement/getconfrimad").permitAll()
                         .requestMatchers("/api/test/**").permitAll()
                         .requestMatchers("/api/autogenie/**").permitAll()
@@ -102,7 +117,9 @@ public class WebSecurityConfig {
                         .requestMatchers("/user/getlplan/**").permitAll()
                         .requestMatchers("/user/getiplan/**").permitAll()
                         .requestMatchers("/images/**").permitAll()
+                        .requestMatchers("/api/agent/applications").hasRole("AGENT")
                         .requestMatchers("/api/agent/messages/**").hasRole("AGENT")
+                        .requestMatchers("/api/agent/**").hasRole("AGENT")
 
                         // 🚩 CORE FIX APPLIED HERE: Using .authenticated() to allow any authenticated user to access messaging.
                         .requestMatchers("/api/messages/**").authenticated()
